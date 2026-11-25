@@ -1,0 +1,4105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>민원 플리즈: 건보 창구 7일</title>
+  <meta name="description" content="국민건강보험공단 지사 민원실을 배경으로 한 8비트 도트풍 서류 심사 게임" />
+  <meta property="og:title" content="민원 플리즈: 건보 창구 7일" />
+  <meta property="og:description" content="국민건강보험공단 지사 민원실을 배경으로 한 8비트 도트풍 서류 심사 게임" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root {
+      --bg-booth: #161d20;
+      --bg-wall: #242e33;
+      --bg-desk: #3d352e;
+      --surface-panel: #1e262a;
+      --surface-card: #f5f0e2;
+      --surface-id: #e8f1f5;
+      --ink-dark: #1b2226;
+      --ink-muted: #4b5563;
+      --ink-light: #edf1ee;
+      --nhis-teal: #177e6e;
+      --nhis-teal-light: #2aa38f;
+      --stamp-approve: #1e7e45;
+      --stamp-reject: #b92b27;
+      --stamp-supplement: #c97a16;
+      --accent-inspect: #2b6cb0;
+      --border-pixel: #0d1214;
+      --font-main: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", dotum, sans-serif;
+      --font-mono: "Consolas", "Courier New", "Malgun Gothic", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-booth);
+      color: var(--ink-light);
+      font-family: var(--font-main);
+      overflow: hidden;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: 0;
+      outline: none;
+    }
+
+    button:focus-visible {
+      outline: 2px solid #facc15;
+      outline-offset: 2px;
+    }
+
+    .pixel-btn {
+      position: relative;
+      border: 3px solid var(--border-pixel);
+      box-shadow: inset 2px 2px 0 rgba(255,255,255,0.22), inset -2px -2px 0 rgba(0,0,0,0.35), 0 3px 0 #0a0e10;
+      transition: transform 80ms steps(2), box-shadow 80ms steps(2);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pixel-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: inset 2px 2px 0 rgba(0,0,0,0.25), 0 1px 0 #0a0e10;
+    }
+
+    .pixel-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+      font-family: var(--font-mono);
+    }
+
+    /* Main App Shell */
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100dvh;
+      max-width: 1440px;
+      margin: 0 auto;
+      background: var(--bg-wall);
+      border-left: 3px solid var(--border-pixel);
+      border-right: 3px solid var(--border-pixel);
+      position: relative;
+    }
+
+    @keyframes deskShake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-4px, 3px); }
+      40% { transform: translate(4px, -3px); }
+      60% { transform: translate(-3px, -2px); }
+      80% { transform: translate(2px, 2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .shake-active {
+      animation: deskShake 220ms steps(4);
+    }
+
+    /* TOP HUD BAR */
+    .hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 12px;
+      background: #141b1e;
+      border-bottom: 3px solid var(--border-pixel);
+      flex-shrink: 0;
+      min-height: 44px;
+    }
+
+    .hud-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .branch-sign {
+      background: var(--nhis-teal);
+      color: #ffffff;
+      padding: 3px 8px;
+      border: 2px solid #0b3d35;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .day-meta {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #d6e0e4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hud-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .hud-clock-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #0d1315;
+      border: 2px solid #35444a;
+      padding: 3px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #f3e5ab;
+      cursor: default;
+      transition: border-color 120ms, background 120ms;
+    }
+
+    .hud-clock-box.inspect-target {
+      cursor: pointer;
+      border-color: #60a5fa;
+      background: #172a45;
+      animation: pulseTarget 1s infinite steps(2);
+    }
+
+    .hud-clock-box.selected-target {
+      border-color: #facc15;
+      background: #3b2f0b;
+      color: #fef08a;
+    }
+
+    @keyframes pulseTarget {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.5); }
+      50% { box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2); }
+    }
+
+    .queue-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #231717;
+      border: 2px solid #593333;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fca5a5;
+    }
+
+    .queue-num {
+      color: #ff6b6b;
+      font-size: 14px;
+    }
+
+    .hud-icon-btn {
+      background: #283338;
+      color: #dce5e8;
+      border: 2px solid #0d1214;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 30px;
+    }
+
+    .hud-icon-btn:hover {
+      background: #35444a;
+    }
+
+    .hud-icon-btn.mobile-only {
+      display: none;
+    }
+
+    /* TOP COUNTER STAGE */
+    .counter-stage {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 12px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, #1d262a 0%, #263136 100%);
+      border-bottom: 4px solid var(--border-pixel);
+      flex-shrink: 0;
+      align-items: center;
+    }
+
+    .booth-canvas-wrap {
+      position: relative;
+      width: 240px;
+      height: 136px;
+      background: #101618;
+      border: 3px solid var(--border-pixel);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    #boothCanvas {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    .ticket-badge-overlay {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(13, 18, 20, 0.88);
+      border: 2px solid #47585f;
+      color: #9ae6b4;
+      font-size: 11px;
+      padding: 1px 6px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .dialogue-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .citizen-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .citizen-tag {
+      font-size: 12.5px;
+      color: #b7c8cf;
+      font-weight: 700;
+    }
+
+    .patience-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: #cbd5e1;
+    }
+
+    .patience-bar-bg {
+      width: 110px;
+      height: 10px;
+      background: #0d1214;
+      border: 2px solid #3c4b52;
+      overflow: hidden;
+    }
+
+    .patience-bar-fill {
+      height: 100%;
+      background: #34d399;
+      transition: width 250ms linear, background-color 200ms;
+    }
+
+    .speech-bubble {
+      position: relative;
+      background: #f9f7ef;
+      color: #161d20;
+      border: 3px solid var(--border-pixel);
+      padding: 10px 13px;
+      font-size: 14px;
+      line-height: 1.55;
+      min-height: 68px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    .speech-bubble::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 22px;
+      width: 0;
+      height: 0;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-right: 10px solid var(--border-pixel);
+    }
+
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: 24px;
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 7px solid #f9f7ef;
+    }
+
+    .speech-speaker {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--nhis-teal);
+      margin-bottom: 2px;
+    }
+
+    .speech-text {
+      font-weight: 600;
+      word-break: keep-all;
+    }
+
+    .audit-mini-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11.5px;
+      color: #a9bac2;
+      flex-wrap: wrap;
+    }
+
+    /* MAIN WORKSPACE (Center Desk + Right Manual) */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* CENTER DESK */
+    .desk-area {
+      position: relative;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          rgba(0,0,0,0.06) 0px,
+          rgba(0,0,0,0.06) 2px,
+          transparent 2px,
+          transparent 48px
+        ),
+        linear-gradient(180deg, #4b4036 0%, #3a3129 100%);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    .desk-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .desk-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ece3cc;
+    }
+
+    .desk-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .desk-small-btn {
+      background: #283338;
+      color: #ece6d5;
+      border: 2px solid #0d1214;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 30px;
+    }
+
+    .desk-small-btn.active {
+      background: var(--nhis-teal);
+      color: #fff;
+    }
+
+    /* Inspect Banner */
+    .inspect-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: #153257;
+      border: 2px solid #60a5fa;
+      color: #e0f2fe;
+      padding: 7px 11px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .inspect-banner.show {
+      display: flex;
+    }
+
+    .inspect-result-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 11px;
+      font-size: 12.5px;
+      font-weight: 700;
+      border: 2px solid var(--border-pixel);
+    }
+
+    .inspect-result-banner.show {
+      display: flex;
+    }
+
+    .inspect-result-banner.mismatch {
+      background: #7f1d1d;
+      color: #fee2e2;
+      border-color: #f87171;
+    }
+
+    .inspect-result-banner.match {
+      background: #14532d;
+      color: #dcfce7;
+      border-color: #4ade80;
+    }
+
+    /* Documents Grid (Side-by-Side Comparison) */
+    .docs-container {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+      flex: 1;
+    }
+
+    .doc-card {
+      position: relative;
+      background: var(--surface-card);
+      color: var(--ink-dark);
+      border: 3px solid #1f1c17;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.45);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .doc-card.id-card {
+      background: linear-gradient(135deg, #e7f0f5 0%, #dce8ef 100%);
+      border-color: #213745;
+    }
+
+    .doc-card.cert-card {
+      background: #f8fafc;
+      border-color: #334155;
+    }
+
+    .doc-card.bank-card {
+      background: #eef6ee;
+      border-color: #1f4d36;
+    }
+
+    .doc-card.poa-card {
+      background: #f7f1e3;
+      border-color: #5b4628;
+    }
+
+    .doc-card.missing-doc {
+      position: relative;
+      background: rgba(20, 26, 29, 0.48);
+      border: 3px dashed #9ca3af;
+      color: #e5e7eb;
+      box-shadow: none;
+      min-height: 200px;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .doc-card.missing-doc.inspect-target {
+      cursor: pointer;
+      border-color: #60a5fa;
+      background: rgba(23, 42, 69, 0.72);
+    }
+
+    .doc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      border-bottom: 2px solid #2b2720;
+      padding-bottom: 5px;
+    }
+
+    .doc-card.id-card .doc-header {
+      border-bottom-color: #325468;
+    }
+
+    .doc-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .doc-zoom-btn {
+      background: rgba(0,0,0,0.08);
+      color: var(--ink-dark);
+      border: 2px solid rgba(0,0,0,0.28);
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .doc-zoom-btn:hover {
+      background: rgba(0,0,0,0.16);
+    }
+
+    /* ID Card Layout */
+    .id-body {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .id-photo-frame {
+      width: 74px;
+      height: 90px;
+      border: 2px solid #213745;
+      background: #cbd8e0;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .id-photo-frame canvas {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    .doc-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .doc-field {
+      display: flex;
+      flex-direction: column;
+      padding: 5px 7px;
+      border: 1px solid rgba(0,0,0,0.14);
+      background: rgba(255,255,255,0.62);
+      transition: background 100ms, border-color 100ms;
+    }
+
+    .doc-field.study-hint {
+      border-left: 4px solid #0f766e;
+    }
+
+    .inspect-mode .doc-field {
+      cursor: pointer;
+      border: 2px dashed #2b6cb0;
+    }
+
+    .inspect-mode .doc-field:hover {
+      background: #dbeafe;
+    }
+
+    .doc-field.selected-field {
+      background: #fef08a !important;
+      border: 2px solid #b45309 !important;
+      box-shadow: inset 0 0 0 1px #b45309;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4b5563;
+      margin-bottom: 1px;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .study-hint-tag {
+      color: #0f766e;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .field-value {
+      font-size: 14px;
+      font-weight: 800;
+      color: #111827;
+      word-break: keep-all;
+      line-height: 1.4;
+    }
+
+    .field-value.blank-val {
+      color: #b91c1c;
+      font-style: italic;
+    }
+
+    .doc-footer-note {
+      font-size: 10.5px;
+      color: #4b5563;
+      border-top: 1px dashed rgba(0,0,0,0.22);
+      padding-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Stamp Graphic Overlay */
+    .stamp-mark {
+      position: absolute;
+      right: 14px;
+      bottom: 18px;
+      padding: 6px 12px;
+      border: 4px solid;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      transform: rotate(-11deg) scale(1.25);
+      opacity: 0;
+      pointer-events: none;
+      background: rgba(255,255,255,0.22);
+    }
+
+    .stamp-mark.stamped {
+      opacity: 0.94;
+      transform: rotate(-11deg) scale(1);
+      transition: transform 90ms steps(2), opacity 60ms;
+    }
+
+    .stamp-mark.APPROVE {
+      color: var(--stamp-approve);
+      border-color: var(--stamp-approve);
+    }
+
+    .stamp-mark.REJECT {
+      color: var(--stamp-reject);
+      border-color: var(--stamp-reject);
+    }
+
+    .stamp-mark.SUPPLEMENT {
+      color: var(--stamp-supplement);
+      border-color: var(--stamp-supplement);
+    }
+
+    /* RIGHT PANEL: MANUAL BOOK */
+    .manual-panel {
+      background: #1b2226;
+      border-left: 4px solid var(--border-pixel);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .manual-book-header {
+      background: var(--nhis-teal);
+      color: #ffffff;
+      padding: 9px 12px;
+      border-bottom: 3px solid var(--border-pixel);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .manual-book-title {
+      font-size: 13.5px;
+      font-weight: 800;
+    }
+
+    .manual-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 6px;
+      background: #13181b;
+      border-bottom: 2px solid var(--border-pixel);
+    }
+
+    .manual-tab {
+      flex: 1 1 auto;
+      background: #273238;
+      color: #cbd5e1;
+      border: 2px solid #0d1214;
+      padding: 7px 6px;
+      min-height: 34px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .manual-tab.active {
+      background: #fcfaf4;
+      color: #0f172a;
+    }
+
+    .manual-page-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      background: #fcfaf4;
+      color: #161d20;
+      margin: 8px;
+      border: 3px solid #2b2720;
+      box-shadow: inset 3px 0 0 rgba(0,0,0,0.06);
+    }
+
+    .manual-page-h {
+      font-size: 15.5px;
+      font-weight: 900;
+      border-bottom: 2px solid #2b2720;
+      padding-bottom: 7px;
+      margin: 0 0 12px 0;
+      color: #0b4f45;
+      letter-spacing: -0.02em;
+    }
+
+    .manual-rule-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .manual-rule-item {
+      background: #ffffff;
+      border: 2px solid #d4cbb3;
+      padding: 11px 12px;
+      font-size: 13px;
+      line-height: 1.68;
+      color: #1e293b;
+      word-break: keep-all;
+    }
+
+    .manual-rule-item strong.rule-head {
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed #cbd5e1;
+      color: #0f172a;
+    }
+
+    .manual-rule-item strong.kw {
+      font-weight: 800;
+      color: #0f172a;
+      background: #fef3c7;
+      padding: 0 3px;
+    }
+
+    .rule-action-tag {
+      display: inline-block;
+      font-weight: 800;
+      font-size: 12px;
+      margin-top: 8px;
+      padding: 3px 8px;
+      border: 2px solid currentColor;
+      background: #f8fafc;
+    }
+
+    .rule-action-tag.approve { color: var(--stamp-approve); background: #ecfdf5; }
+    .rule-action-tag.reject { color: var(--stamp-reject); background: #fef2f2; }
+    .rule-action-tag.supplement { color: #b45309; background: #fffbeb; }
+
+    .manual-close-mobile {
+      display: none;
+      background: #0d1214;
+      color: #fff;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* BOTTOM ACTION BAR */
+    .action-bar {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #141b1e;
+      border-top: 4px solid var(--border-pixel);
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      min-height: 46px;
+      padding: 8px 10px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #ffffff;
+    }
+
+    .btn-inspect { background: var(--accent-inspect); }
+    .btn-inspect.active { background: #1d4ed8; box-shadow: inset 0 0 0 2px #facc15; }
+    .btn-approve { background: var(--stamp-approve); }
+    .btn-reject { background: var(--stamp-reject); }
+    .btn-supplement { background: var(--stamp-supplement); }
+
+    /* FEEDBACK SLIP OVERLAY */
+    .feedback-slip {
+      position: fixed;
+      left: 50%;
+      bottom: 72px;
+      transform: translateX(-50%) translateY(16px);
+      background: #fbf7eb;
+      color: #1b2226;
+      border: 3px solid var(--border-pixel);
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.55);
+      padding: 9px 15px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      max-width: 92vw;
+      text-align: center;
+      transition: opacity 150ms, transform 150ms;
+    }
+
+    .feedback-slip.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .feedback-slip.bad {
+      background: #fef2f2;
+      border-color: #991b1b;
+      color: #7f1d1d;
+    }
+
+    .feedback-slip.good {
+      background: #ecfdf5;
+      border-color: #065f46;
+      color: #064e3b;
+    }
+
+    /* MODALS */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 13, 15, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 60;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 580px;
+      max-height: 92dvh;
+      overflow-y: auto;
+      background: #1d262a;
+      color: #edf1ee;
+      border: 4px solid var(--border-pixel);
+      box-shadow: 6px 6px 0 rgba(0,0,0,0.65);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-card.paper-modal {
+      background: var(--surface-card);
+      color: var(--ink-dark);
+      max-width: 480px;
+    }
+
+    .title-hero-canvas {
+      width: 100%;
+      height: 140px;
+      background: #101618;
+      border: 3px solid var(--border-pixel);
+      image-rendering: pixelated;
+    }
+
+    .title-h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+    }
+
+    .title-sub {
+      margin: 0;
+      font-size: 13px;
+      color: #b4c4cc;
+    }
+
+    .howto-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .howto-box {
+      background: #141b1e;
+      border: 2px solid #2e3b42;
+      padding: 9px;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .howto-box strong {
+      display: block;
+      color: #6ee7b7;
+      margin-bottom: 4px;
+    }
+
+    /* Name Setup Modal */
+    .name-setup-box {
+      background: #141b1e;
+      border: 2px solid #2e3b42;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .name-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .name-input {
+      flex: 1;
+      min-width: 0;
+      min-height: 44px;
+      background: #0d1214;
+      color: #ffffff;
+      border: 3px solid #415159;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .name-input:focus {
+      border-color: #2aa38f;
+    }
+
+    .name-random-btn {
+      min-height: 44px;
+      background: #2b383e;
+      color: #edf1ee;
+      border: 3px solid var(--border-pixel);
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.45);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .name-random-btn:hover {
+      background: #36474f;
+    }
+
+    .name-preview {
+      font-size: 13.5px;
+      color: #6ee7b7;
+      font-weight: 700;
+    }
+
+    .name-error {
+      font-size: 12.5px;
+      color: #fca5a5;
+      font-weight: 700;
+      min-height: 18px;
+    }
+
+    /* Messenger UI */
+    .messenger-win {
+      background: #f8fafc;
+      color: #1e293b;
+      border: 3px solid var(--border-pixel);
+      overflow: hidden;
+    }
+
+    .messenger-top {
+      background: #1e3a5f;
+      color: #ffffff;
+      padding: 9px 13px;
+      font-size: 13.5px;
+      font-weight: 800;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .messenger-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #e2e8f0;
+    }
+
+    .msg-bubble {
+      background: #ffffff;
+      border: 2px solid #94a3b8;
+      padding: 11px 13px;
+      font-size: 14px;
+      line-height: 1.72;
+      color: #111827;
+      word-break: keep-all;
+    }
+
+    .msg-bubble strong {
+      font-weight: 800;
+      color: #0f172a;
+      background: #fef3c7;
+      padding: 1px 4px;
+      border-bottom: 2px solid #f59e0b;
+    }
+
+    .msg-sender {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f766e;
+      margin-bottom: 4px;
+    }
+
+    /* Settlement & Ending */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat-cell {
+      background: #141b1e;
+      border: 2px solid #324047;
+      padding: 9px 10px;
+    }
+
+    .stat-label {
+      font-size: 11.5px;
+      color: #9fb3bc;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .mistake-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .mistake-item {
+      background: #2b1818;
+      border: 2px solid #7f1d1d;
+      padding: 8px 10px;
+      font-size: 12.5px;
+      color: #fecaca;
+      line-height: 1.5;
+    }
+
+    .afterwork-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .afterwork-btn {
+      background: #232e33;
+      color: #edf1ee;
+      border: 2px solid #415159;
+      padding: 10px 9px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .afterwork-btn:hover {
+      border-color: #2aa38f;
+      background: #26383e;
+    }
+
+    .afterwork-btn.selected {
+      background: #134e4a;
+      border-color: #5eead4;
+    }
+
+    .afterwork-btn strong {
+      font-size: 13px;
+      color: #fde68a;
+    }
+
+    .ending-banner {
+      background: #141b1e;
+      border: 3px solid #2aa38f;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ending-banner.bad {
+      border-color: #ef4444;
+      background: #281414;
+    }
+
+    .ending-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #fde68a;
+    }
+
+    .ending-banner.bad .ending-title {
+      color: #fca5a5;
+    }
+
+    .ending-desc {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #e2e8f0;
+      word-break: keep-all;
+    }
+
+    /* RESPONSIVE MOBILE LAYOUT */
+    @media (max-width: 960px) {
+      .hud-icon-btn.mobile-only {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .counter-stage {
+        grid-template-columns: 124px 1fr;
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .booth-canvas-wrap {
+        width: 124px;
+        height: 98px;
+      }
+
+      .speech-bubble {
+        min-height: 58px;
+        padding: 7px 9px;
+        font-size: 13px;
+      }
+
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .manual-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(94vw, 390px);
+        z-index: 55;
+        transform: translateX(100%);
+        transition: transform 180ms steps(4);
+      }
+
+      .manual-panel.open-mobile {
+        transform: translateX(0);
+      }
+
+      .manual-close-mobile {
+        display: inline-block;
+      }
+
+      .docs-container {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .docs-container.side-by-side-mobile {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .docs-container.side-by-side-mobile .id-body {
+        grid-template-columns: 1fr;
+      }
+
+      .docs-container.side-by-side-mobile .doc-card {
+        padding: 7px;
+      }
+
+      .docs-container.side-by-side-mobile .field-value {
+        font-size: 11.5px;
+      }
+
+      .action-bar {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        padding: 6px 8px;
+      }
+
+      .action-btn {
+        min-height: 44px;
+        font-size: 13px;
+      }
+
+      .howto-grid, .afterwork-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .branch-sign {
+        display: none;
+      }
+      .patience-bar-bg {
+        width: 68px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .shake-active { animation: none; }
+      * { transition-duration: 0ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- TOP HUD -->
+    <header class="hud-bar">
+      <div class="hud-left">
+        <span class="branch-sign">OO지사 민원실 · 제3창구</span>
+        <span class="day-meta" id="hudDayInfo">1일차 (2026-03-02 월) · 신입 주임</span>
+      </div>
+      <div class="hud-right">
+        <div class="queue-box" title="현재 대기 중인 민원인 수">
+          <span>대기</span>
+          <span class="queue-num tabular-nums" id="hudQueueCount">03명</span>
+        </div>
+        <div class="hud-clock-box" id="hudClockBox" title="창구 시계 (불일치 지적 시 오늘 날짜 선택 가능)">
+          <span class="tabular-nums" id="hudClockTime">09:00</span>
+          <span style="font-size:10px;color:#9fb3bc;" id="hudTodayDate">03-02</span>
+        </div>
+        <button class="hud-icon-btn mobile-only" id="btnMobileManual" type="button">매뉴얼</button>
+        <button class="hud-icon-btn" id="btnMute" type="button" title="효과음 켜기/끄기">소리 켜짐</button>
+        <button class="hud-icon-btn" id="btnPause" type="button">일시정지</button>
+      </div>
+    </header>
+
+    <!-- TOP COUNTER STAGE -->
+    <section class="counter-stage">
+      <div class="booth-canvas-wrap">
+        <canvas id="boothCanvas" width="240" height="136"></canvas>
+        <div class="ticket-badge-overlay" id="ticketOverlay">번호 001</div>
+      </div>
+
+      <div class="dialogue-panel">
+        <div class="citizen-meta-row">
+          <span class="citizen-tag" id="citizenRoleTag">대기 중 · 민원 호출 준비</span>
+          <div class="patience-wrap" id="patienceWrap" style="visibility:hidden;">
+            <span>대기 인내</span>
+            <div class="patience-bar-bg">
+              <div class="patience-bar-fill" id="patienceFill" style="width:100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="speech-bubble" id="speechBubble" title="클릭하면 대사가 즉시 표시됩니다">
+          <div class="speech-speaker" id="speechSpeaker">안내 시스템</div>
+          <div class="speech-text" id="speechText">민원인이 창구 앞으로 걸어오고 있습니다...</div>
+        </div>
+
+        <div class="audit-mini-bar">
+          <span id="hudProcessedSummary" class="tabular-nums">처리 0건 · 오처리 0건 · 누적 감사지적 0/3</span>
+          <span id="hudBuffSummary">적용 버프: 없음</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="workspace-grid">
+      <!-- CENTER DESK -->
+      <section class="desk-area" id="deskArea">
+        <div class="desk-toolbar">
+          <span class="desk-title" id="deskClaimTitle">접수 서류 책상 — 직장가입자 자격 취득 신고</span>
+          <div class="desk-controls">
+            <button class="desk-small-btn" id="btnToggleSideBySide" type="button">나란히 보기</button>
+            <button class="desk-small-btn" id="btnClearInspect" type="button" style="display:none;">선택 초기화</button>
+          </div>
+        </div>
+
+        <div class="inspect-banner" id="inspectBanner">
+          <span id="inspectBannerText">불일치 지적 모드: 비교할 두 항목을 차례로 탭하세요 (유효기간·발급일·누락은 시계 또는 동일 항목 2회 탭)</span>
+          <button class="desk-small-btn" id="btnCancelInspect" type="button">취소</button>
+        </div>
+
+        <div class="inspect-result-banner" id="inspectResultBanner">
+          <span id="inspectResultText"></span>
+        </div>
+
+        <div class="docs-container" id="docsContainer"></div>
+      </section>
+
+      <!-- RIGHT PANEL: MANUAL BOOK -->
+      <aside class="manual-panel" id="manualPanel" aria-label="업무 매뉴얼">
+        <div class="manual-book-header">
+          <span class="manual-book-title" id="manualBookTitle">업무 매뉴얼 (1일차)</span>
+          <button class="manual-close-mobile" id="btnCloseManualMobile" type="button">닫기</button>
+        </div>
+        <div class="manual-tabs" id="manualTabs"></div>
+        <div class="manual-page-body" id="manualPageBody"></div>
+      </aside>
+    </main>
+
+    <!-- BOTTOM ACTION BAR -->
+    <footer class="action-bar">
+      <button class="pixel-btn action-btn btn-inspect" id="btnInspect" type="button">불일치 지적</button>
+      <button class="pixel-btn action-btn btn-approve" id="btnApprove" type="button">승인 도장</button>
+      <button class="pixel-btn action-btn btn-reject" id="btnReject" type="button">반려 도장</button>
+      <button class="pixel-btn action-btn btn-supplement" id="btnSupplement" type="button">보완 요청</button>
+    </footer>
+  </div>
+
+  <!-- FEEDBACK SLIP -->
+  <div class="feedback-slip" id="feedbackSlip"></div>
+
+  <!-- MODAL 1: TITLE SCREEN -->
+  <div class="modal-backdrop open" id="modalTitle">
+    <div class="modal-card">
+      <canvas class="title-hero-canvas" id="titleCanvas" width="480" height="140"></canvas>
+      <div>
+        <h1 class="title-h1">민원 플리즈: 건보 창구 5일</h1>
+        <p class="title-sub">OO지사 민원실 신입 주임 근무 일지 · 1일차~5일차 완결판</p>
+      </div>
+      <div class="howto-grid">
+        <div class="howto-box">
+          <strong>1. 서류 대조</strong>
+          신분증과 각종 신청서·증명서의 인적사항, 날짜, 서명을 꼼꼼히 비교하세요.
+        </div>
+        <div class="howto-box">
+          <strong>2. 불일치 지적</strong>
+          이상한 점을 발견하면 [불일치 지적] 후 두 항목을 탭해 추궁할 수 있습니다.
+        </div>
+        <div class="howto-box">
+          <strong>3. 도장 결재</strong>
+          매뉴얼 기준에 따라 [승인], [반려], [보완 요청] 중 알맞은 도장을 찍으세요.
+        </div>
+      </div>
+      <div style="font-size:12.5px;color:#cbd5e1;background:#141b1e;padding:9px 11px;border:2px solid #2e3b42;line-height:1.55;">
+        근무 기간: 5일 (1일차~5일차 종합감사) · 하루 약 2분 (7~8건) · 오처리 3건당 감사 지적 1회 (3회 누적 시 징계 면담)
+      </div>
+      <button class="pixel-btn action-btn btn-approve" id="btnStartGame" type="button" style="width:100%;">
+        게임 시작 (출근 등록)
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 1.5: PLAYER NAME SETUP -->
+  <div class="modal-backdrop" id="modalNameSetup">
+    <div class="modal-card" style="max-width:460px;">
+      <div>
+        <h2 class="title-h1" style="font-size:21px;">신입 주임 임용 등록</h2>
+        <p class="title-sub" style="margin-top:4px;">OO지사 민원실 제3창구에서 불릴 이름(닉네임)을 입력하세요.</p>
+      </div>
+      <div class="name-setup-box">
+        <label for="inputPlayerName" style="font-size:13px;font-weight:700;color:#cbd5e1;">
+          성명 또는 닉네임 (최대 8자 · 입력 시 'OO 주임'으로 호칭)
+        </label>
+        <div class="name-input-row">
+          <input
+            type="text"
+            id="inputPlayerName"
+            class="name-input"
+            maxlength="8"
+            placeholder="예: 김건보"
+            autocomplete="off"
+          />
+          <button class="name-random-btn" id="btnRandomName" type="button">랜덤 이름</button>
+        </div>
+        <div class="name-preview" id="namePreviewText">창구 호칭: 김건보 주임</div>
+        <div class="name-error" id="nameInputError"></div>
+      </div>
+      <button class="pixel-btn action-btn btn-approve" id="btnConfirmName" type="button" style="width:100%;">
+        김건보 주임으로 출근하기 (1일차)
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 2: TEAM LEADER MESSENGER -->
+  <div class="modal-backdrop" id="modalMessenger">
+    <div class="modal-card">
+      <div class="messenger-win">
+        <div class="messenger-top">
+          <span>사내 메신저 · 김 팀장</span>
+          <span class="tabular-nums" id="messengerTime">08:55</span>
+        </div>
+        <div class="messenger-body" id="messengerBody"></div>
+      </div>
+      <button class="pixel-btn action-btn btn-approve" id="btnConfirmMessenger" type="button" style="width:100%;">
+        확인 완료 — 09:00 창구 오픈
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: DOCUMENT ZOOM VIEW -->
+  <div class="modal-backdrop" id="modalZoom">
+    <div class="modal-card paper-modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2b2720;padding-bottom:6px;">
+        <strong id="zoomModalTitle" style="font-size:15px;">서류 확대 보기</strong>
+        <button class="desk-small-btn" id="btnCloseZoom" type="button">닫기</button>
+      </div>
+      <div id="zoomModalContent"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: PAUSE -->
+  <div class="modal-backdrop" id="modalPause">
+    <div class="modal-card" style="max-width:380px;text-align:center;">
+      <h2 style="margin:0;font-size:18px;">업무 일시정지</h2>
+      <p style="margin:0;font-size:13px;color:#cbd5e1;">잠시 숨을 고르고 매뉴얼을 복습할 수 있습니다.</p>
+      <button class="pixel-btn action-btn btn-approve" id="btnResume" type="button">업무 계속하기</button>
+      <button class="pixel-btn action-btn btn-reject" id="btnRestartFromPause" type="button">1일차 처음부터 다시</button>
+    </div>
+  </div>
+
+  <!-- MODAL 5: END OF DAY SETTLEMENT / FINAL ENDING -->
+  <div class="modal-backdrop" id="modalSettlement">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #35444a;padding-bottom:8px;">
+        <h2 style="margin:0;font-size:19px;" id="settlementTitle">1일차 퇴근 정산</h2>
+        <span class="tabular-nums" style="font-size:12px;color:#9fb3bc;" id="settlementSubtitle">18:00 마감</span>
+      </div>
+
+      <div id="endingBannerWrap" style="display:none;"></div>
+
+      <div class="stat-grid" id="settlementStats"></div>
+
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:#fca5a5;margin-bottom:5px;">오처리 및 감사 점검 내역</div>
+        <div class="mistake-list" id="settlementMistakes"></div>
+      </div>
+
+      <div id="afterWorkSection">
+        <div style="font-size:13px;font-weight:700;color:#fde68a;margin-bottom:6px;">퇴근 후 선택 (다음 날 버프 적용)</div>
+        <div class="afterwork-grid" id="afterWorkGrid"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="pixel-btn action-btn btn-approve" id="btnNextDay" type="button" style="flex:1;">
+          다음 날 출근하기
+        </button>
+        <button class="pixel-btn action-btn btn-inspect" id="btnRestartCampaign" type="button" style="flex:1;display:none;">
+          1일차부터 다시 시작
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       [날짜 생성 유틸 (오늘 날짜 기준 자동 정렬)]
+       ========================================================================= */
+    function parseISODateLocal(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function formatDateISO(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDays(baseDate, offsetDays) {
+      const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+      d.setDate(d.getDate() + offsetDays);
+      return d;
+    }
+
+    function subtractMonths(baseDate, months) {
+      const targetDay = baseDate.getDate();
+      const d = new Date(baseDate.getFullYear(), baseDate.getMonth() - months, 1);
+      const lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(Math.min(targetDay, lastDayOfMonth));
+      return d;
+    }
+
+    function buildDatesByDay(totalDays = 5) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+      const map = {};
+      for (let day = 1; day <= totalDays; day++) {
+        const current = addDays(today, day - 1);
+        const dateStr = formatDateISO(current);
+        const threeMonthsAgoStr = formatDateISO(subtractMonths(current, 3));
+        const dayName = weekdays[current.getDay()];
+        const suffix = day === totalDays ? ' · 종합감사' : '';
+        map[day] = {
+          dateStr,
+          threeMonthsAgoStr,
+          label: `${day}일차 (${dateStr} ${dayName}${suffix})`
+        };
+      }
+      return map;
+    }
+
+    /* =========================================================================
+       [게임 데이터 영역]
+       1일차 ~ 5일차 전체 민원 종류, 오류 유형, 매뉴얼, 팀장 메신저, 특수 민원,
+       단골 스토리라인, 엔딩 데이터를 상단에 통합 정의하였습니다.
+       ========================================================================= */
+    const GAME_DATA = {
+      config: {
+        branchName: 'OO지사 민원실',
+        counterName: '제3창구',
+        totalDays: 5,
+        playableMaxDay: 5,
+        dayDurationByDay: { 1: 110, 2: 115, 3: 120, 4: 120, 5: 130 },
+        startHour: 9,
+        endHour: 18,
+        mistakesPerAudit: 3, // 오처리 3건마다 감사 지적 1회
+        maxAuditStrikes: 3,  // 감사 지적 3회 누적 시 징계 면담 배드 엔딩
+        datesByDay: buildDatesByDay(5)
+      },
+
+      docMeta: {
+        id_card: { title: '본인 신분증 (주민등록증)', styleClass: 'id-card' },
+        proxy_id_card: { title: '대리인 신분증', styleClass: 'id-card' },
+        acquire_form: { title: '직장가입자 자격취득 신고서', styleClass: '', isPrimaryForm: true },
+        dependent_form: { title: '피부양자 등록 신청서', styleClass: '', isPrimaryForm: true },
+        family_cert: { title: '가족관계증명서', styleClass: 'cert-card' },
+        power_of_attorney: { title: '민원 위임장', styleClass: 'poa-card' },
+        refund_form: { title: '보험료 환급금 신청서', styleClass: '', isPrimaryForm: true },
+        bankbook_copy: { title: '통장 사본', styleClass: 'bank-card' },
+        installment_form: { title: '보험료 분할납부 신청서', styleClass: '', isPrimaryForm: true },
+        arrears_cert: { title: '체납 내역 확인서', styleClass: 'cert-card' }
+      },
+
+      claimTypes: {
+        workplace_acquire: {
+          id: 'workplace_acquire',
+          dayIntroduced: 1,
+          title: '직장가입자 자격 취득 신고',
+          shortName: '자격취득 신고',
+          requiredDocs: ['id_card', 'acquire_form'],
+          primaryForm: 'acquire_form'
+        },
+        dependent_reg: {
+          id: 'dependent_reg',
+          dayIntroduced: 2,
+          title: '피부양자 등록 신청',
+          shortName: '피부양자 등록',
+          requiredDocs: ['id_card', 'dependent_form', 'family_cert'],
+          primaryForm: 'dependent_form'
+        },
+        proxy_visit: {
+          id: 'proxy_visit',
+          dayIntroduced: 3,
+          title: '대리인 민원 신청 (자격취득)',
+          shortName: '대리인 방문',
+          requiredDocs: ['id_card', 'proxy_id_card', 'power_of_attorney', 'acquire_form'],
+          primaryForm: 'acquire_form'
+        },
+        refund_claim: {
+          id: 'refund_claim',
+          dayIntroduced: 4,
+          title: '보험료 환급금 신청',
+          shortName: '환급금 신청',
+          requiredDocs: ['id_card', 'refund_form', 'bankbook_copy'],
+          primaryForm: 'refund_form'
+        },
+        installment_plan: {
+          id: 'installment_plan',
+          dayIntroduced: 5,
+          title: '보험료 분할납부 신청',
+          shortName: '분할납부 신청',
+          requiredDocs: ['id_card', 'installment_form', 'arrears_cert'],
+          primaryForm: 'installment_form'
+        }
+      },
+
+      errorTypes: {
+        NONE: {
+          id: 'NONE',
+          validActions: ['APPROVE'],
+          mistakeReason: '모든 서류가 정상인 건이었습니다. [승인]해야 합니다.'
+        },
+        SUSPICIOUS_TRAP: {
+          id: 'SUSPICIOUS_TRAP',
+          validActions: ['APPROVE'],
+          mistakeReason: '민원인 태도가 수상했을 뿐 서류는 완벽한 정상이었습니다. [승인]해야 합니다.'
+        },
+        NAME_MISMATCH: {
+          id: 'NAME_MISMATCH',
+          validActions: ['REJECT'],
+          mistakeReason: '신분증과 신청서의 성명이 서로 다릅니다. [반려] 대상입니다.'
+        },
+        DOB_MISMATCH: {
+          id: 'DOB_MISMATCH',
+          validActions: ['REJECT'],
+          mistakeReason: '신분증과 신청서의 생년월일이 다릅니다. [반려] 대상입니다.'
+        },
+        ID_EXPIRED: {
+          id: 'ID_EXPIRED',
+          validActions: ['REJECT'],
+          mistakeReason: '유효기간이 만료된 신분증입니다. [반려] 대상입니다.'
+        },
+        MISSING_ID: {
+          id: 'MISSING_ID',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '본인 신분증이 누락되었습니다. 지참 후 제출하도록 [보완 요청]해야 합니다.'
+        },
+        MISSING_FORM: {
+          id: 'MISSING_FORM',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '신청서 서류가 빠졌습니다. 작성 후 제출하도록 [보완 요청]해야 합니다.'
+        },
+        FORM_INCOMPLETE: {
+          id: 'FORM_INCOMPLETE',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '신청서 필수 기재란이 공란입니다. [보완 요청] 대상입니다.'
+        },
+        ELDER_MINOR_GAP: {
+          id: 'ELDER_MINOR_GAP',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '사정이 딱한 어르신의 경미한 기재 누락은 [보완 요청]으로 친절히 안내해야 합니다.'
+        },
+        MANAGER_ACQUAINTANCE_INVALID: {
+          id: 'MANAGER_ACQUAINTANCE_INVALID',
+          validActions: ['REJECT'],
+          mistakeReason: '지사장 지인이라며 청탁했으나 규정 위반 서류입니다. 승인 시 감사 지적!'
+        },
+        /* 2일차: 피부양자 등록 */
+        DOC_OUTDATED_3M: {
+          id: 'DOC_OUTDATED_3M',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '가족관계증명서 발급일이 3개월을 초과했습니다. 재발급해 오도록 [보완 요청]해야 합니다.'
+        },
+        DEP_NAME_MISMATCH: {
+          id: 'DEP_NAME_MISMATCH',
+          validActions: ['REJECT'],
+          mistakeReason: '가족관계증명서와 신청서의 피부양자 성명 또는 가족관계가 다릅니다. [반려] 대상입니다.'
+        },
+        MISSING_FAMILY_CERT: {
+          id: 'MISSING_FAMILY_CERT',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '가족관계증명서가 누락되었습니다. [보완 요청]해야 합니다.'
+        },
+        /* 3일차: 대리인 방문 */
+        PROXY_NO_SIGN: {
+          id: 'PROXY_NO_SIGN',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '위임장에 위임인 서명이 없습니다. 서명을 받아오도록 [보완 요청]해야 합니다.'
+        },
+        PROXY_NAME_MISMATCH: {
+          id: 'PROXY_NAME_MISMATCH',
+          validActions: ['REJECT'],
+          mistakeReason: '위임장의 대리인 성명과 대리인 신분증 성명이 다릅니다. [반려] 대상입니다.'
+        },
+        PROXY_ID_EXPIRED: {
+          id: 'PROXY_ID_EXPIRED',
+          validActions: ['REJECT'],
+          mistakeReason: '대리인 신분증의 유효기간이 만료되었습니다. [반려] 대상입니다.'
+        },
+        MISSING_POA: {
+          id: 'MISSING_POA',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '위임장이 누락되었습니다. [보완 요청]해야 합니다.'
+        },
+        /* 4일차: 보험료 환급금 */
+        BANK_OWNER_MISMATCH: {
+          id: 'BANK_OWNER_MISMATCH',
+          validActions: ['REJECT'],
+          mistakeReason: '통장 사본의 예금주와 신청인 본인 명의가 다릅니다. [반려] 대상입니다.'
+        },
+        MISSING_BANKBOOK: {
+          id: 'MISSING_BANKBOOK',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '통장 사본이 누락되었습니다. [보완 요청]해야 합니다.'
+        },
+        BANK_ACCOUNT_BLANK: {
+          id: 'BANK_ACCOUNT_BLANK',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '환급 계좌번호 또는 통장 정보가 누락되었습니다. [보완 요청] 대상입니다.'
+        },
+        /* 5일차: 분할납부 + 종합감사 */
+        ARREARS_AMOUNT_MISMATCH: {
+          id: 'ARREARS_AMOUNT_MISMATCH',
+          validActions: ['REJECT'],
+          mistakeReason: '체납 내역 확인서의 체납 금액과 신청서 금액이 서로 다릅니다. [반려] 대상입니다.'
+        },
+        MISSING_ARREARS: {
+          id: 'MISSING_ARREARS',
+          validActions: ['SUPPLEMENT'],
+          mistakeReason: '체납 내역 확인서가 누락되었습니다. [보완 요청]해야 합니다.'
+        }
+      },
+
+      /* 일자별 팀장 메신저 (규칙·대조·금지/안내 핵심만 볼드 처리) */
+      messengerByDay: {
+        1: [
+          {
+            sender: '김 팀장',
+            text: '{name} 주임님, 오늘 OO지사 민원실 첫 출근 축하합니다! 바로 제3창구 자리에 앉아주세요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '1일차는 [직장가입자 자격 취득 신고] 업무입니다. 제출된 <strong>신분증과 신고서 2종의 성명·생년월일·유효기간 대조</strong>를 꼼꼼히 진행해 주세요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '주의할 점! 오처리 3건마다 감사 지적 1회가 쌓입니다. 특히 <strong>지사장 지인 청탁은 승인 금지(즉시 반려)</strong>, 서류가 조금 빠진 <strong>어르신께는 반려 대신 보완 요청</strong>으로 안내해 주세요.'
+          }
+        ],
+        2: [
+          {
+            sender: '김 팀장',
+            text: '{name} 주임님, 2일차 출근 고생 많으십니다. 어제 입사 신고했던 박민수 씨가 오늘 다시 온다고 하네요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '오늘부터 [피부양자 등록] 업무가 추가됩니다. 기존 서류 외에 <strong>가족관계증명서 발급일이 오늘 기준 3개월 이내인지, 부양자·피부양자 성명과 관계가 일치하는지 대조</strong>해 주세요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '<strong>발급일 3개월 초과 증명서는 서류 보충 대상이니 보완 요청</strong>으로 안내하고, <strong>피부양자 성명·관계가 다르면 즉시 반려</strong>하세요.'
+          }
+        ],
+        3: [
+          {
+            sender: '김 팀장',
+            text: '3일차입니다, {name} 주임님! 오늘은 본인이 못 오고 가족이나 직원이 대신 방문하는 경우가 많을 겁니다.'
+          },
+          {
+            sender: '김 팀장',
+            text: '오늘부터 [대리인 방문] 건이 추가됩니다. <strong>위임장·대리인 신분증·위임인 서류를 함께 확인해 대리인 성명 일치 여부와 위임인 서명 유무를 대조</strong>해 주세요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '<strong>위임인 서명이 비어 있으면 보완 요청</strong>, <strong>위임장 대리인과 대리인 신분증이 다르거나 신분증 유효기간이 만료됐으면 즉시 반려</strong>입니다.'
+          }
+        ],
+        4: [
+          {
+            sender: '김 팀장',
+            text: '벌써 4일차네요, {name} 주임님. 오늘은 과오납 보험료를 돌려달라는 환급 민원이 들어옵니다.'
+          },
+          {
+            sender: '김 팀장',
+            text: '오늘부터 [보험료 환급금 신청]이 추가됩니다. 반드시 <strong>통장 사본의 예금주와 신청인 본인 명의가 일치하는지 대조</strong>해 주세요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '<strong>타인 명의 통장 사본은 착오·횡령 위험이 있어 승인 금지(즉시 반려)</strong>입니다. <strong>통장 사본 미제출이나 계좌번호 누락은 보완 요청</strong>으로 안내해 주세요.'
+          }
+        ],
+        5: [
+          {
+            sender: '김 팀장',
+            text: '드디어 마지막 5일차, {name} 주임님! 본부 감사관 점검이 있는 종합감사 날입니다. 지금까지 배운 모든 민원 유형이 함께 들어옵니다.'
+          },
+          {
+            sender: '김 팀장',
+            text: '마지막 업무로 [보험료 분할납부 신청]이 추가됩니다. <strong>체납 내역 확인서의 체납자 성명·체납 금액과 신청서 내용을 대조</strong>해 주세요.'
+          },
+          {
+            sender: '김 팀장',
+            text: '감사관이 처리 건을 수시로 점검합니다. <strong>지사장 지인 청탁은 예외 없이 승인 금지(즉시 반려)</strong>, <strong>어르신 경미한 누락은 보완 요청</strong> 원칙을 끝까지 지켜주세요!'
+          }
+        ]
+      },
+
+      /* 일자별 업무 매뉴얼 (누적 페이지 구조) */
+      manualPagesByDay: {
+        commonBasics: {
+          id: 'basics',
+          tabLabel: '기본 원칙',
+          title: '제1장. 창구 결재 및 도장 기준',
+          rules: [
+            {
+              head: '승인 도장 [승인]',
+              body: '• 필수 서류가 모두 제출됨\n• <strong class="kw">성명·생년월일·명의·금액 등 대조 항목 모두 일치</strong>\n• 신분증 유효기간 및 증명서 발급일 기준 충족',
+              actionText: '태도가 수상해도 서류가 완벽하면 [승인]',
+              actionClass: 'approve'
+            },
+            {
+              head: '반려 도장 [반려]',
+              body: '• <strong class="kw">신분증 유효기간 만료</strong> (오늘 날짜 이전)\n• <strong class="kw">성명·생년월일·대리인·예금주·체납액 불일치</strong>\n• <strong class="kw">지사장 지인 등 부당한 청탁</strong>',
+              actionText: '부적격·위변조 의심·청탁 건은 [반려]',
+              actionClass: 'reject'
+            },
+            {
+              head: '보완 요청 [보완 요청]',
+              body: '• <strong class="kw">필수 서류 일부 미제출(누락)</strong>\n• <strong class="kw">발급일 3개월 초과 가족관계증명서</strong>\n• <strong class="kw">서명·계좌·사업장 등 필수란 공란</strong> 및 <strong class="kw">어르신 경미한 누락</strong>',
+              actionText: '서류 보충·재작성 가능 건은 [보완 요청]',
+              actionClass: 'supplement'
+            }
+          ]
+        },
+        day1Acquire: {
+          id: 'acquire',
+          tabLabel: '1일 자격취득',
+          title: '제2장. 직장가입자 자격 취득 신고',
+          rules: [
+            {
+              head: '필수 서류 (2종)',
+              body: '1) 본인 신분증\n2) 직장가입자 자격취득 신고서',
+              actionText: '서류 누락 시 → [보완 요청]',
+              actionClass: 'supplement'
+            },
+            {
+              head: '인적사항 및 유효기간 대조',
+              body: '신분증과 신고서의 <strong class="kw">성명·생년월일 일치</strong> 여부와 <strong class="kw">신분증 유효기간(오늘 이후)</strong>을 확인합니다. 신고서 사업장명·취득일·서명 공란은 보완 대상입니다.',
+              actionText: '불일치·만료 → [반려] / 공란 → [보완 요청]',
+              actionClass: 'reject'
+            }
+          ]
+        },
+        day2Dependent: {
+          id: 'dependent',
+          tabLabel: '2일 피부양자',
+          title: '제3장. 피부양자 등록 신청 (2일차 추가)',
+          rules: [
+            {
+              head: '필수 서류 (3종)',
+              body: '1) 부양자(신청인) 신분증\n2) 피부양자 등록 신청서\n3) <strong class="kw">가족관계증명서</strong>',
+              actionText: '가족관계증명서 누락 시 → [보완 요청]',
+              actionClass: 'supplement'
+            },
+            {
+              head: '발급일 3개월 이내 규칙',
+              body: '가족관계증명서 <strong class="kw">발급일이 오늘 기준 3개월 이내</strong>여야 합니다. (시계와 발급일자 비교)',
+              actionText: '3개월 초과 시 → [보완 요청]',
+              actionClass: 'supplement'
+            },
+            {
+              head: '피부양자 성명·가족관계 대조',
+              body: '증명서의 <strong class="kw">피부양자 성명·가족관계</strong>가 신청서와 다르면 등록 불가합니다.',
+              actionText: '성명·관계 불일치 → [반려]',
+              actionClass: 'reject'
+            }
+          ]
+        },
+        day3Proxy: {
+          id: 'proxy',
+          tabLabel: '3일 대리인',
+          title: '제4장. 대리인 방문 민원 (3일차 추가)',
+          rules: [
+            {
+              head: '필수 서류 (4종)',
+              body: '1) 위임인 신분증 사본  2) <strong class="kw">대리인 신분증</strong>\n3) <strong class="kw">민원 위임장</strong>  4) 자격취득 신고서',
+              actionText: '위임장 등 서류 누락 → [보완 요청]',
+              actionClass: 'supplement'
+            },
+            {
+              head: '위임장 서명 & 대리인 대조',
+              body: '• 위임장에 <strong class="kw">위임인 서명</strong>이 반드시 있어야 합니다.\n• 위임장의 <strong class="kw">대리인 성명</strong>과 <strong class="kw">대리인 신분증 성명</strong>이 일치하고, 대리인 신분증이 유효기간 내여야 합니다.',
+              actionText: '서명 누락 → [보완 요청] / 성명 불일치·만료 → [반려]',
+              actionClass: 'reject'
+            }
+          ]
+        },
+        day4Refund: {
+          id: 'refund',
+          tabLabel: '4일 환급금',
+          title: '제5장. 보험료 환급금 신청 (4일차 추가)',
+          rules: [
+            {
+              head: '필수 서류 (3종)',
+              body: '1) 본인 신분증\n2) 보험료 환급금 신청서\n3) <strong class="kw">통장 사본</strong>',
+              actionText: '통장 사본·계좌번호 누락 → [보완 요청]',
+              actionClass: 'supplement'
+            },
+            {
+              head: '예금주 본인 명의 확인',
+              body: '통장 사본의 <strong class="kw">예금주 성명이 신청인 본인 성명</strong>과 일치해야 합니다. 가족·타인 계좌 지급 불가.',
+              actionText: '예금주 명의 불일치 → [반려]',
+              actionClass: 'reject'
+            }
+          ]
+        },
+        day5Installment: {
+          id: 'installment',
+          tabLabel: '5일 분할납부',
+          title: '제6장. 보험료 분할납부 신청 (5일차 추가)',
+          rules: [
+            {
+              head: '필수 서류 (3종)',
+              body: '1) 본인 신분증\n2) 보험료 분할납부 신청서\n3) <strong class="kw">체납 내역 확인서</strong>',
+              actionText: '확인서 누락 → [보완 요청]',
+              actionClass: 'supplement'
+            },
+            {
+              head: '체납자·체납 금액 대조',
+              body: '체납 내역 확인서의 <strong class="kw">체납자 성명</strong> 및 <strong class="kw">체납 확인 금액</strong>이 신청서와 정확히 일치해야 합니다.',
+              actionText: '성명·금액 불일치 → [반려]',
+              actionClass: 'reject'
+            }
+          ]
+        },
+        specialGuide: {
+          id: 'special',
+          tabLabel: '특수 응대',
+          title: '특수 민원인 및 감사 수칙',
+          rules: [
+            {
+              head: '사정이 딱한 어르신',
+              body: '기재 공란이나 서류 미비가 있어도 <strong class="kw">반려 대신 보완 요청</strong>으로 친절히 안내하면 민원 칭찬(VOC)이 올라갑니다.',
+              actionText: '[보완 요청] 시 VOC 칭찬 +1',
+              actionClass: 'supplement'
+            },
+            {
+              head: '지사장 지인 청탁',
+              body: '만료된 신분증이나 타인 명의 서류를 봐달라고 압력을 넣습니다. <strong class="kw">승인 시 즉시 감사 지적 +1</strong>입니다.',
+              actionText: '청탁은 예외 없이 [반려]',
+              actionClass: 'reject'
+            },
+            {
+              head: '성급한 민원인 & 함정 케이스',
+              body: '재촉하거나 불안해 보여도 서류만 맞으면 [승인], 틀리면 원칙대로 처리하세요.',
+              actionText: '서류 사실 확인 우선',
+              actionClass: 'approve'
+            }
+          ]
+        }
+      },
+
+      pools: {
+        lastNames: ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황'],
+        firstNames: [
+          '서준', '민준', '도윤', '예준', '시우', '하준', '주원', '지호', '지우', '서연',
+          '서윤', '하은', '민서', '지유', '채원', '수빈', '현우', '영수', '미영',
+          '정훈', '은지', '태현', '유진', '성민', '혜진', '동현', '지민', '상훈', '경희'
+        ],
+        workplaces: [
+          '(주)태양물산', '한빛테크놀로지', '성실건설산업', '푸른식자재유통',
+          '대성정밀공업', '우리동네마트', '서해물류센터', '미래디자인랩',
+          '청명엔지니어링', '늘봄요양병원', '삼일회계법인', '하나로제과'
+        ],
+        addresses: [
+          '가상시 희망구 건보로 102', '가상시 중앙구 공단길 45-3',
+          '가상시 푸른구 민원대로 88', '가상시 새벽구 직장로 17',
+          '가상시 평화구 복지동 204호', '가상시 하늘구 행복길 31'
+        ],
+        banks: ['국민은행', '신한은행', '우리은행', '하나은행', '농협은행'],
+        relations: ['부(아버지)', '모(어머니)', '배우자', '자녀'],
+        phones: ['010-2341-0091', '010-4812-0034', '010-5590-0072', '010-7123-0048', '010-8904-0015'],
+        hairColors: ['#1b1b1e', '#3b2820', '#5c4033', '#2d3142', '#8c8c8c'],
+        skinTones: ['#f3cfb3', '#e8be9e', '#ddb08d', '#f7d9c4'],
+        outfitColors: ['#2c4a6e', '#3d5a45', '#5a3d4e', '#4f545c', '#6e472c', '#1f6f62']
+      },
+
+      /* 특수 & 단골 시나리오 (1~5일차 연속 스토리라인 포함) */
+      specialScenarios: {
+        regular_park_1: {
+          id: 'regular_park_1',
+          name: '박민수',
+          roleTag: '단골 민원인 · 사회초년생 (1화)',
+          claimTypeId: 'workplace_acquire',
+          forcedError: 'NONE',
+          spritePreset: { hairStyle: 1, hairColor: '#1b1b1e', skinTone: '#f3cfb3', outfitColor: '#2c4a6e', glasses: true },
+          greeting: '저... 오늘 첫 직장에 입사해서 직장가입자 신고하러 왔습니다! 서류 두 장 다 챙겨왔어요.',
+          approveReaction: '와, 첫 직장 등록 완료네요! 감사합니다! 내일은 부모님 피부양자 등록하러 또 올게요!',
+          rejectReaction: '어라? 제 서류 다 맞지 않나요...? 첫날부터 왜 반려죠...?',
+          supplementReaction: '네? 부족한 게 있었나요? 다시 확인해 볼게요...'
+        },
+        regular_park_2: {
+          id: 'regular_park_2',
+          name: '박민수',
+          roleTag: '단골 민원인 · 박민수 (2화)',
+          claimTypeId: 'dependent_reg',
+          forcedError: 'NONE',
+          spritePreset: { hairStyle: 1, hairColor: '#1b1b1e', skinTone: '#f3cfb3', outfitColor: '#2c4a6e', glasses: true },
+          greeting: '{name} 주임님, 저 어제 왔던 박민수입니다! 말씀드린 대로 오늘은 어머님 피부양자 등록하러 왔어요. 가족관계증명서도 오늘 아침에 떼왔습니다!',
+          approveReaction: '어제에 이어 오늘도 친절히 처리해 주셔서 감사합니다! 다음엔 환급금 문의하러 또 올 수도 있어요~',
+          rejectReaction: '어? 오늘 아침에 새로 떼온 증명서인데 문제가 있나요?',
+          supplementReaction: '서류가 빠졌나요? 다 챙긴 줄 알았는데...'
+        },
+        regular_park_4: {
+          id: 'regular_park_4',
+          name: '박민수',
+          roleTag: '단골 민원인 · 박민수 (3화)',
+          claimTypeId: 'refund_claim',
+          forcedError: 'NONE',
+          spritePreset: { hairStyle: 1, hairColor: '#1b1b1e', skinTone: '#f3cfb3', outfitColor: '#2c4a6e', glasses: true },
+          greeting: '{name} 주임님 또 뵙네요! 이전 직장 지역보험료 과오납 환급금이 있다고 해서 제 명의 통장 사본 들고 왔습니다!',
+          approveReaction: '늘 깔끔하게 처리해 주셔서 감사해요! {name} 주임님 덕분에 공단 창구가 든든합니다!',
+          rejectReaction: '제 통장 맞는데 왜 반려인가요...?',
+          supplementReaction: '계좌번호가 안 적혀 있었나요?'
+        },
+        regular_park_5: {
+          id: 'regular_park_5',
+          name: '박민수',
+          roleTag: '단골 민원인 · 박민수 (최종화)',
+          claimTypeId: 'installment_plan',
+          forcedError: 'NONE',
+          spritePreset: { hairStyle: 1, hairColor: '#1b1b1e', skinTone: '#f3cfb3', outfitColor: '#2c4a6e', glasses: true },
+          greeting: '{name} 주임님! 제가 아니라 예전 사업장 미납 정리용 분할납부 서류 확인차 마지막으로 들렀어요. 감사 날이라 긴장되시죠? 파이팅입니다!',
+          approveReaction: '5일 동안 정말 감사했습니다, {name} 주임님! 우수 직원 표창 꼭 받으실 거예요!',
+          rejectReaction: '어라, 금액이나 이름이 이상한가요?',
+          supplementReaction: '확인서 다시 떼와야 할까요?'
+        },
+        impatient_boss: {
+          id: 'impatient_boss',
+          name: '강성질',
+          roleTag: '특수 민원 · 성급한 방문객',
+          patienceSpeed: 2.0,
+          greeting: '아 {name} 주임님, 지금 회의 들어가야 하니까 20초 안으로 빨리 도장 찍어줘요! 바빠 죽겠네!',
+          impatientLine: '아직도 보고 있어요?! 글자 몇 개 확인하는 데 뭐가 그리 오래 걸려요!',
+          approveReaction: '진작 찍어줄 것이지! 수고해요!',
+          rejectReaction: '뭐요?! 바빠 죽겠는데 다시 오라고요?! 아 진짜...',
+          supplementReaction: '하... 서류를 덜 냈다고요? 아 거 참, 빨리 말해주지!'
+        },
+        kind_elder: {
+          id: 'kind_elder',
+          name: '김복순',
+          roleTag: '특수 민원 · 사정이 딱한 어르신',
+          forcedError: 'ELDER_MINOR_GAP',
+          spritePreset: { hairStyle: 4, hairColor: '#cbd5e1', skinTone: '#e8be9e', outfitColor: '#6b4c5e', glasses: true, isElder: true },
+          greeting: '아이고 {name} 주임 양반... 내가 노안이라 글씨가 가물가물해서 서류를 다 채웠나 모르겠네유...',
+          discrepancyReaction: '어머나, 거기 쓰는 칸이 비었구나... 아들이 적어준 대로 베껴 적다가 깜빡했네유... 미안해라...',
+          approveReaction: '고맙긴 한데... 빈칸 때문에 나중에 공단에서 전화 오면 어쩌나 걱정되네유...',
+          rejectReaction: '아이고... 이렇게 딱지 맞으면 난 어떡허유... 젊은 주임이 너무 야박하네...',
+          supplementReaction: '아이고 친절도 해라! 빈칸만 채워서 다시 오면 되는 거쥬? 너무 고마워유!'
+        },
+        manager_friend: {
+          id: 'manager_friend',
+          name: '조인맥',
+          roleTag: '특수 민원 · 지사장 지인 청탁',
+          forcedError: 'MANAGER_ACQUAINTANCE_INVALID',
+          spritePreset: { hairStyle: 2, hairColor: '#3b2820', skinTone: '#ddb08d', outfitColor: '#473c38', glasses: false },
+          greeting: '어이 {name} 주임! 내가 여기 OO지사 지사장하고 형님 동생 하는 사이야. 기간 좀 지나고 명의 좀 달라도 그냥 얼른 승인해 줘.',
+          discrepancyReaction: '허허, 신입이라 융통성이 없구만. 지사장 이름 대면 다 통과되는 건데 뭘 굳이 지적까지 해?',
+          approveReaction: '역시 눈치가 빠르구만! 지사장님한테 잘 말해줄게~ (감사 적발 위험!)',
+          rejectReaction: '뭐야, 지사장 이름을 대는데도 반려를 해?! 두고 보자고!',
+          supplementReaction: '서류를 다시 가져오라고? 지사장님한테 이른다?'
+        },
+        suspicious_trap: {
+          id: 'suspicious_trap',
+          name: '오수상',
+          roleTag: '일반 민원 · 초조한 방문객',
+          forcedError: 'SUSPICIOUS_TRAP',
+          greeting: '저기... 이거 전산 조회 오래 걸리나요? 그냥 도장만 빨리 찍어주시면 안 될까요... 제가 지금 좀 쫓겨서요.',
+          discrepancyReaction: '네? 이상한 데 없지 않나요? 제 신분증이랑 서류 다 맞게 적었는데요!',
+          approveReaction: '휴, 다행이다! 사실 주차 단속 카메라 시간 다 돼서 급했던 거였어요. 감사합니다!',
+          rejectReaction: '아니 내 서류 멀쩡한데 왜 반려해요?! 이상한 사람 취급하지 마세요!',
+          supplementReaction: '빠진 것도 없는데 뭘 보완하라는 거예요?'
+        }
+      },
+
+      dialogueTemplates: {
+        greetingsByClaim: {
+          workplace_acquire: [
+            '안녕하세요, 직장가입자 자격 취득 신고하러 왔습니다.',
+            '이번에 새로 입사해서 자격 취득 서류 제출하려고요.'
+          ],
+          dependent_reg: [
+            '가족을 피부양자로 등록하려고 서류 가져왔습니다.',
+            '피부양자 등록 신청하러 왔어요. 가족관계증명서도 챙겼습니다.'
+          ],
+          proxy_visit: [
+            '본인이 바빠서 제가 위임장 받아서 대리 신청하러 왔습니다.',
+            '배우자 대신 자격 취득 신고 접수하러 왔어요.'
+          ],
+          refund_claim: [
+            '보험료 과오납 환급금 신청하러 왔습니다. 통장 사본 여기 있어요.',
+            '환급금 통지서 받아서 계좌로 받으려고 왔습니다.'
+          ],
+          installment_plan: [
+            '밀린 보험료 분할납부 신청하러 왔습니다.',
+            '체납 내역 확인서 떼서 분할납부 접수하려고요.'
+          ]
+        },
+        discrepancyReactions: {
+          NAME_MISMATCH: '어?! 아... 급하게 나오느라 가족 신분증을 잘못 챙겼나 봅니다... 죄송합니다.',
+          DOB_MISMATCH: '아차, 신청서에 생년월일 숫자를 잘못 적었나 봐요... 당황스럽네요.',
+          ID_EXPIRED: '헉, 신분증 유효기간이 지난 걸 몰랐네요... 죄송합니다.',
+          PROXY_ID_EXPIRED: '어머, 대리인인 제 신분증 기간이 지났네요... 몰랐어요.',
+          DOC_OUTDATED_3M: '아, 예전에 뽑아둔 가족관계증명서라 3개월이 넘었나 보네요. 다시 떼와야겠군요.',
+          DEP_NAME_MISMATCH: '어? 증명서에 있는 가족이랑 신청서에 적은 이름이 다르다고요? 잘못 적었나 봐요...',
+          PROXY_NAME_MISMATCH: '아... 위임장에 적힌 대리인 이름이 다른 사람 이름으로 되어 있네요...',
+          BANK_OWNER_MISMATCH: '가족 통장으로 받으려고 했는데 본인 명의만 되나요...? 죄송합니다.',
+          ARREARS_AMOUNT_MISMATCH: '어라, 체납 확인서 금액이랑 제가 쓴 금액이 다른가요?',
+          FORM_INCOMPLETE: '아, 거기 빈칸을 안 채우고 냈군요. 미처 못 봤네요.',
+          MATCH_OK: '제 서류 그 부분은 정확히 맞게 작성했을 텐데요?'
+        },
+        outcomes: {
+          normalApprove: '감사합니다! 수고하세요!',
+          normalReject: '알겠습니다... 확인해서 다시 처리할게요.',
+          normalSupplement: '네, 빠진 부분 보완해서 다시 창구 오겠습니다!',
+          wrongReject: '아니, 제 서류에 아무 문제 없는데 왜 반려하시죠?! 민원 넣겠습니다!'
+        }
+      },
+
+      afterWorkChoices: [
+        {
+          id: 'study',
+          title: '자기계발 (건보법령 스터디)',
+          desc: '내일 서류 심사 시 날짜·서명·예금주 등 핵심 대조 항목에 힌트 표시',
+          buffLabel: '법령 숙지 (핵심 항목 강조)'
+        },
+        {
+          id: 'dinner',
+          title: '동기와 회식 (삼겹살에 소맥)',
+          desc: '내일 민원인 대기 인내심 감소 속도 30% 완화',
+          buffLabel: '멘탈 충전 (인내심 30% 완화)'
+        },
+        {
+          id: 'rest',
+          title: '집에서 휴식 (일찍 취침)',
+          desc: '내일 첫 오처리 1회 자동 방어 (감사 지적·오처리 면제)',
+          buffLabel: '컨디션 회복 (첫 오처리 1회 방어)'
+        }
+      ],
+
+      endings: {
+        badAudit: {
+          title: '배드 엔딩: 감사 지적 누적 (징계 면담)',
+          isBad: true,
+          desc: '{name} 주임님은 누적 감사 지적이 3회에 도달하여 본부 감사팀의 징계 면담을 받게 되었습니다. 기본 대조 원칙과 청탁 거절의 중요성을 뼈아프게 배운 5일이었습니다.'
+        },
+        excellent: {
+          title: '우수 직원 표창 엔딩: OO지사의 에이스 {name} 주임',
+          isBad: false,
+          desc: '높은 심사 정확도와 따뜻한 민원 응대(VOC 칭찬)를 동시에 인정받아 {name} 주임님이 지사장 표창장을 수여받았습니다! 본부 감사관도 엄지를 치켜세웠습니다.'
+        },
+        kindHeart: {
+          title: '사람 좋은 직원 엔딩: 민원실의 천사 {name} 주임',
+          isBad: false,
+          desc: '서류 정확도는 조금 아쉽지만, 어르신과 방문객들에게 늘 친절히 안내해 지사 칭찬 게시판이 {name} 주임님 이야기로 가득합니다.'
+        },
+        strictRule: {
+          title: '원칙주의자 엔딩: 흔들리지 않는 규정의 수호자 {name} 주임',
+          isBad: false,
+          desc: '바늘 하나 들어갈 틈 없는 칼같은 서류 심사로 감사관의 극찬을 받았습니다. 다만 민원인들 사이에서는 {name} 주임님이 조금 무섭다는 소문이 돌고 있습니다.'
+        },
+        normalYear1: {
+          title: '무난한 1년 차 엔딩: 어엿한 건보공단 {name} 주임',
+          isBad: false,
+          desc: '우여곡절 끝에 5일간의 실전 창구 근무와 종합감사를 무사히 마쳤습니다! 이제 어떤 민원이 와도 당황하지 않는 어엿한 1년 차 {name} 주임입니다.'
+        }
+      }
+    };
+
+    /* =========================================================================
+       [Web Audio API 사운드 엔진]
+       ========================================================================= */
+    const SoundFX = (() => {
+      let ctx = null;
+      let muted = false;
+
+      function ensureCtx() {
+        if (muted) return null;
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) ctx = new AudioCtx();
+        }
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+        return ctx;
+      }
+
+      function playTone(freq, duration, type = 'square', gainVal = 0.08, delay = 0) {
+        const c = ensureCtx();
+        if (!c) return;
+        const now = c.currentTime + delay;
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(gainVal, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(c.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      return {
+        setMuted(v) { muted = v; },
+        isMuted() { return muted; },
+        playTicketChime() {
+          playTone(659.25, 0.18, 'triangle', 0.09, 0);
+          playTone(523.25, 0.30, 'triangle', 0.09, 0.16);
+        },
+        playMessenger() {
+          playTone(880, 0.09, 'sine', 0.08, 0);
+          playTone(1174.66, 0.14, 'sine', 0.08, 0.09);
+        },
+        playStamp(kind) {
+          const c = ensureCtx();
+          if (!c) return;
+          const now = c.currentTime;
+          const osc = c.createOscillator();
+          const g = c.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+          g.gain.setValueAtTime(0.28, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+          osc.connect(g);
+          g.connect(c.destination);
+          osc.start(now);
+          osc.stop(now + 0.17);
+
+          const bufSize = c.sampleRate * 0.08;
+          const buf = c.createBuffer(1, bufSize, c.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.25));
+          }
+          const src = c.createBufferSource();
+          src.buffer = buf;
+          const filter = c.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = kind === 'REJECT' ? 900 : 1200;
+          const ng = c.createGain();
+          ng.gain.setValueAtTime(0.22, now);
+          src.connect(filter);
+          filter.connect(ng);
+          ng.connect(c.destination);
+          src.start(now);
+        },
+        playPaperSlide() {
+          const c = ensureCtx();
+          if (!c) return;
+          const now = c.currentTime;
+          const bufSize = Math.floor(c.sampleRate * 0.09);
+          const buf = c.createBuffer(1, bufSize, c.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+          }
+          const src = c.createBufferSource();
+          src.buffer = buf;
+          const filter = c.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.value = 1800;
+          const g = c.createGain();
+          g.gain.setValueAtTime(0.07, now);
+          src.connect(filter);
+          filter.connect(g);
+          g.connect(c.destination);
+          src.start(now);
+        },
+        playTypeBlip() {
+          playTone(420 + Math.random() * 90, 0.03, 'square', 0.018, 0);
+        },
+        playAlert() {
+          playTone(220, 0.12, 'sawtooth', 0.08, 0);
+          playTone(185, 0.18, 'sawtooth', 0.08, 0.13);
+        },
+        playSuccessChime() {
+          playTone(587.33, 0.1, 'square', 0.05, 0);
+          playTone(880, 0.18, 'square', 0.05, 0.1);
+        }
+      };
+    })();
+
+    /* =========================================================================
+       [8비트 도트 캐릭터 & 창구 배경 Canvas 렌더러]
+       ========================================================================= */
+    const PixelArt = (() => {
+      function drawPixelRect(ctx, x, y, w, h, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+      }
+
+      function drawCitizenSprite(ctx, sprite, cx, baseY, scale, expression = 'neutral', walkBob = 0) {
+        const s = scale;
+        const yOff = Math.round(walkBob * s);
+        const x = Math.round(cx - 12 * s);
+        const y = Math.round(baseY - 30 * s + yOff);
+
+        drawPixelRect(ctx, x + 3*s, y + 18*s, 18*s, 12*s, sprite.outfitColor);
+        drawPixelRect(ctx, x + 9*s, y + 18*s, 6*s, 4*s, '#f1f5f9');
+        drawPixelRect(ctx, x + 11*s, y + 20*s, 2*s, 7*s, sprite.isElder ? '#94a3b8' : '#1e293b');
+        drawPixelRect(ctx, x + 9*s, y + 15*s, 6*s, 3*s, sprite.skinTone);
+        drawPixelRect(ctx, x + 6*s, y + 4*s, 12*s, 12*s, sprite.skinTone);
+        drawPixelRect(ctx, x + 5*s, y + 8*s, 1*s, 3*s, sprite.skinTone);
+        drawPixelRect(ctx, x + 18*s, y + 8*s, 1*s, 3*s, sprite.skinTone);
+
+        const hc = sprite.hairColor;
+        if (sprite.hairStyle === 0) {
+          drawPixelRect(ctx, x + 6*s, y + 2*s, 12*s, 3*s, hc);
+          drawPixelRect(ctx, x + 5*s, y + 4*s, 2*s, 4*s, hc);
+          drawPixelRect(ctx, x + 17*s, y + 4*s, 2*s, 4*s, hc);
+        } else if (sprite.hairStyle === 1) {
+          drawPixelRect(ctx, x + 6*s, y + 2*s, 12*s, 4*s, hc);
+          drawPixelRect(ctx, x + 6*s, y + 5*s, 5*s, 2*s, hc);
+          drawPixelRect(ctx, x + 14*s, y + 5*s, 4*s, 2*s, hc);
+        } else if (sprite.hairStyle === 2) {
+          drawPixelRect(ctx, x + 7*s, y + 2*s, 10*s, 2*s, hc);
+          drawPixelRect(ctx, x + 5*s, y + 4*s, 2*s, 5*s, hc);
+          drawPixelRect(ctx, x + 17*s, y + 4*s, 2*s, 5*s, hc);
+        } else if (sprite.hairStyle === 3) {
+          drawPixelRect(ctx, x + 5*s, y + 2*s, 14*s, 4*s, hc);
+          drawPixelRect(ctx, x + 4*s, y + 5*s, 2*s, 10*s, hc);
+          drawPixelRect(ctx, x + 18*s, y + 5*s, 2*s, 10*s, hc);
+        } else {
+          drawPixelRect(ctx, x + 5*s, y + 2*s, 14*s, 4*s, hc);
+          drawPixelRect(ctx, x + 8*s, y + 0*s, 8*s, 2*s, hc);
+          drawPixelRect(ctx, x + 5*s, y + 5*s, 2*s, 5*s, hc);
+          drawPixelRect(ctx, x + 17*s, y + 5*s, 2*s, 5*s, hc);
+        }
+
+        const eyeY = y + 9*s;
+        if (expression === 'angry') {
+          drawPixelRect(ctx, x + 8*s, y + 7*s, 3*s, 1*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 13*s, y + 7*s, 3*s, 1*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 8*s, eyeY, 2*s, 2*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 14*s, eyeY, 2*s, 2*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 10*s, y + 13*s, 4*s, 1*s, '#7f1d1d');
+        } else if (expression === 'flustered' || expression === 'nervous') {
+          drawPixelRect(ctx, x + 8*s, eyeY, 2*s, 2*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 14*s, eyeY, 2*s, 2*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 16*s, y + 6*s, 2*s, 3*s, '#60a5fa');
+          drawPixelRect(ctx, x + 10*s, y + 13*s, 4*s, 1*s, '#4b5563');
+        } else if (expression === 'relieved' || expression === 'happy') {
+          drawPixelRect(ctx, x + 8*s, eyeY, 2*s, 1*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 14*s, eyeY, 2*s, 1*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 10*s, y + 13*s, 4*s, 1*s, '#1e7e45');
+        } else if (expression === 'sad') {
+          drawPixelRect(ctx, x + 8*s, eyeY + 1*s, 2*s, 1*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 14*s, eyeY + 1*s, 2*s, 1*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 10*s, y + 13*s, 4*s, 1*s, '#6b7280');
+        } else {
+          drawPixelRect(ctx, x + 8*s, eyeY, 2*s, 2*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 14*s, eyeY, 2*s, 2*s, '#1b1b1e');
+          drawPixelRect(ctx, x + 10*s, y + 13*s, 4*s, 1*s, '#6b4c42');
+        }
+
+        if (sprite.glasses) {
+          drawPixelRect(ctx, x + 7*s, eyeY - 1*s, 4*s, 1*s, '#1f2937');
+          drawPixelRect(ctx, x + 13*s, eyeY - 1*s, 4*s, 1*s, '#1f2937');
+          drawPixelRect(ctx, x + 11*s, eyeY, 2*s, 1*s, '#1f2937');
+          drawPixelRect(ctx, x + 7*s, eyeY + 2*s, 4*s, 1*s, '#1f2937');
+          drawPixelRect(ctx, x + 13*s, eyeY + 2*s, 4*s, 1*s, '#1f2937');
+        }
+      }
+
+      function renderBoothScene(canvas, citizen, animState) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.imageSmoothingEnabled = false;
+
+        drawPixelRect(ctx, 0, 0, w, h, '#1d272b');
+        for (let i = 0; i < w; i += 24) {
+          drawPixelRect(ctx, i, 0, 2, h, '#161f22');
+        }
+        drawPixelRect(ctx, 14, 16, 44, 34, '#2a373d');
+        drawPixelRect(ctx, 16, 18, 40, 8, '#177e6e');
+        drawPixelRect(ctx, 18, 30, 32, 3, '#cbd5e1');
+        drawPixelRect(ctx, 18, 36, 24, 3, '#94a3b8');
+
+        drawPixelRect(ctx, 168, 72, 54, 16, '#263136');
+        drawPixelRect(ctx, 172, 64, 12, 8, '#2f3e45');
+        drawPixelRect(ctx, 190, 64, 12, 8, '#2f3e45');
+        drawPixelRect(ctx, 208, 64, 12, 8, '#2f3e45');
+
+        if (citizen) {
+          const cx = animState.x;
+          const bob = animState.walking ? Math.abs(Math.sin(animState.step * 0.35)) * -1.4 : 0;
+          drawCitizenSprite(ctx, citizen.sprite, cx, 114, 3, animState.expression, bob);
+        }
+
+        drawPixelRect(ctx, 0, 108, w, 28, '#4a3f36');
+        drawPixelRect(ctx, 0, 108, w, 4, '#66574b');
+        drawPixelRect(ctx, 0, 0, 10, 108, '#13191c');
+        drawPixelRect(ctx, w - 10, 0, 10, 108, '#13191c');
+        ctx.fillStyle = 'rgba(200, 235, 245, 0.06)';
+        ctx.fillRect(28, 8, 8, 96);
+        ctx.fillRect(42, 8, 3, 96);
+        drawPixelRect(ctx, w - 42, 68, 22, 22, '#0d1214');
+        for (let gy = 72; gy < 88; gy += 4) {
+          drawPixelRect(ctx, w - 39, gy, 16, 2, '#3d4c54');
+        }
+      }
+
+      function renderIdPhoto(canvas, sprite) {
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        drawPixelRect(ctx, 0, 0, canvas.width, canvas.height, '#dbeafe');
+        drawCitizenSprite(ctx, sprite, canvas.width / 2, canvas.height - 2, 2.35, 'neutral', 0);
+      }
+
+      function renderTitleHero(canvas) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.imageSmoothingEnabled = false;
+
+        drawPixelRect(ctx, 0, 0, w, h, '#141c1f');
+        for (let x = 20; x < w; x += 48) {
+          drawPixelRect(ctx, x, 20, 2, 100, '#1c262a');
+        }
+        drawPixelRect(ctx, 130, 12, 220, 24, '#177e6e');
+        drawPixelRect(ctx, 134, 16, 212, 16, '#105c50');
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px "Malgun Gothic", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('국민건강보험공단 OO지사 민원실', 240, 29);
+
+        const sampleSprites = [
+          { hairStyle: 1, hairColor: '#1b1b1e', skinTone: '#f3cfb3', outfitColor: '#2c4a6e', glasses: true },
+          { hairStyle: 4, hairColor: '#cbd5e1', skinTone: '#e8be9e', outfitColor: '#6b4c5e', glasses: true, isElder: true },
+          { hairStyle: 3, hairColor: '#3b2820', skinTone: '#ddb08d', outfitColor: '#3d5a45', glasses: false }
+        ];
+        drawCitizenSprite(ctx, sampleSprites[0], 110, 122, 2.4, 'neutral', 0);
+        drawCitizenSprite(ctx, sampleSprites[1], 240, 122, 2.7, 'sad', 0);
+        drawCitizenSprite(ctx, sampleSprites[2], 370, 122, 2.4, 'flustered', 0);
+
+        drawPixelRect(ctx, 0, 118, w, 22, '#4a3f36');
+        drawPixelRect(ctx, 0, 118, w, 4, '#66574b');
+      }
+
+      return { renderBoothScene, renderIdPhoto, renderTitleHero };
+    })();
+
+    /* =========================================================================
+       [1~5일차 민원 케이스 생성기]
+       ========================================================================= */
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateKoreanName() {
+      return pick(GAME_DATA.pools.lastNames) + pick(GAME_DATA.pools.firstNames);
+    }
+
+    function generateOtherName(excludeName) {
+      let n = generateKoreanName();
+      while (n === excludeName) n = generateKoreanName();
+      return n;
+    }
+
+    function generateBirthDate(isElder = false) {
+      const year = isElder
+        ? 1945 + Math.floor(Math.random() * 14)
+        : 1968 + Math.floor(Math.random() * 35);
+      const month = 1 + Math.floor(Math.random() * 12);
+      const day = 1 + Math.floor(Math.random() * 28);
+      const yy = String(year).slice(2);
+      const mm = String(month).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      return { year, mm, dd, full: `${year}-${mm}-${dd}`, rrnFront: `${yy}${mm}${dd}` };
+    }
+
+    function generateOtherBirthDate(orig) {
+      const altMonth = (Number(orig.mm) % 12) + 1;
+      const altDay = (Number(orig.dd) % 28) + 1;
+      const mm = String(altMonth).padStart(2, '0');
+      const dd = String(altDay).padStart(2, '0');
+      return { full: `${orig.year}-${mm}-${dd}` };
+    }
+
+    function generateValidExpiry(day) {
+      const base = parseISODateLocal(GAME_DATA.config.datesByDay[day].dateStr);
+      const offsetDays = 365 + Math.floor(Math.random() * 1800);
+      return formatDateISO(addDays(base, offsetDays));
+    }
+
+    function generateExpiredDate(day) {
+      const base = parseISODateLocal(GAME_DATA.config.datesByDay[day].dateStr);
+      const offsetDays = -(30 + Math.floor(Math.random() * 820));
+      return formatDateISO(addDays(base, offsetDays));
+    }
+
+    function generateRecentDate3M(day) {
+      // 오늘 날짜 기준 3개월 이내 (5일 ~ 65일 전)
+      const base = parseISODateLocal(GAME_DATA.config.datesByDay[day].dateStr);
+      const offsetDays = -(5 + Math.floor(Math.random() * 60));
+      return formatDateISO(addDays(base, offsetDays));
+    }
+
+    function generateOutdated3M(day) {
+      // 오늘 날짜 기준 3개월 초과 (105일 ~ 240일 전)
+      const base = parseISODateLocal(GAME_DATA.config.datesByDay[day].dateStr);
+      const offsetDays = -(105 + Math.floor(Math.random() * 135));
+      return formatDateISO(addDays(base, offsetDays));
+    }
+
+    function buildDayQueue(day) {
+      const daySpecs = {
+        1: [
+          { type: 'special', key: 'regular_park_1' },
+          { type: 'random', claimTypeId: 'workplace_acquire', error: 'NAME_MISMATCH' },
+          { type: 'special', key: 'kind_elder', claimTypeId: 'workplace_acquire' },
+          { type: 'special', key: 'impatient_boss', claimTypeId: 'workplace_acquire', error: 'ID_EXPIRED' },
+          { type: 'special', key: 'suspicious_trap', claimTypeId: 'workplace_acquire' },
+          { type: 'random', claimTypeId: 'workplace_acquire', error: 'MISSING_ID' },
+          { type: 'special', key: 'manager_friend', claimTypeId: 'workplace_acquire' }
+        ],
+        2: [
+          { type: 'special', key: 'regular_park_2' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'DOC_OUTDATED_3M' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'DEP_NAME_MISMATCH' },
+          { type: 'special', key: 'kind_elder', claimTypeId: 'dependent_reg' },
+          { type: 'random', claimTypeId: 'workplace_acquire', error: 'DOB_MISMATCH' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'MISSING_FAMILY_CERT' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'NONE' }
+        ],
+        3: [
+          { type: 'random', claimTypeId: 'proxy_visit', error: 'NONE' },
+          { type: 'random', claimTypeId: 'proxy_visit', error: 'PROXY_NO_SIGN' },
+          { type: 'random', claimTypeId: 'proxy_visit', error: 'PROXY_NAME_MISMATCH' },
+          { type: 'special', key: 'impatient_boss', claimTypeId: 'proxy_visit', error: 'PROXY_ID_EXPIRED' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'DOC_OUTDATED_3M' },
+          { type: 'random', claimTypeId: 'proxy_visit', error: 'MISSING_POA' },
+          { type: 'special', key: 'suspicious_trap', claimTypeId: 'proxy_visit' }
+        ],
+        4: [
+          { type: 'special', key: 'regular_park_4' },
+          { type: 'random', claimTypeId: 'refund_claim', error: 'BANK_OWNER_MISMATCH' },
+          { type: 'random', claimTypeId: 'refund_claim', error: 'MISSING_BANKBOOK' },
+          { type: 'special', key: 'manager_friend', claimTypeId: 'refund_claim', error: 'BANK_OWNER_MISMATCH' },
+          { type: 'random', claimTypeId: 'proxy_visit', error: 'PROXY_NO_SIGN' },
+          { type: 'special', key: 'kind_elder', claimTypeId: 'refund_claim' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'NONE' }
+        ],
+        5: [
+          { type: 'random', claimTypeId: 'installment_plan', error: 'NONE' },
+          { type: 'random', claimTypeId: 'installment_plan', error: 'ARREARS_AMOUNT_MISMATCH' },
+          { type: 'random', claimTypeId: 'dependent_reg', error: 'DOC_OUTDATED_3M' },
+          { type: 'random', claimTypeId: 'proxy_visit', error: 'PROXY_NAME_MISMATCH' },
+          { type: 'random', claimTypeId: 'refund_claim', error: 'BANK_OWNER_MISMATCH' },
+          { type: 'special', key: 'kind_elder', claimTypeId: 'installment_plan' },
+          { type: 'special', key: 'manager_friend', claimTypeId: 'installment_plan' },
+          { type: 'special', key: 'regular_park_5' }
+        ]
+      };
+
+      const list = daySpecs[day] || daySpecs[1];
+      // 1번 민원은 스토리 흐름을 위해 고정, 2번 이후만 가볍게 섞음 (5일차 마지막 박민수도 고정)
+      const head = list[0];
+      const tailFixed = day === 5 ? list[list.length - 1] : null;
+      const middle = day === 5 ? list.slice(1, -1) : list.slice(1);
+
+      for (let i = middle.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [middle[i], middle[j]] = [middle[j], middle[i]];
+      }
+      const ordered = tailFixed ? [head, ...middle, tailFixed] : [head, ...middle];
+      return ordered.map((spec, idx) => createCaseObject(spec, idx + 1, day));
+    }
+
+    function createCaseObject(spec, ticketNo, day) {
+      const dayInfo = GAME_DATA.config.datesByDay[day];
+      const todayStr = dayInfo.dateStr;
+      const threeMonthsAgoStr = dayInfo.threeMonthsAgoStr;
+
+      const isSpecial = spec.type === 'special';
+      const specialDef = isSpecial ? GAME_DATA.specialScenarios[spec.key] : null;
+      const claimTypeId = spec.claimTypeId || specialDef?.claimTypeId || 'workplace_acquire';
+      const claimDef = GAME_DATA.claimTypes[claimTypeId];
+      const errorCode = isSpecial
+        ? (spec.error || specialDef.forcedError || 'NONE')
+        : spec.error;
+
+      const isElder = !!(specialDef && specialDef.spritePreset && specialDef.spritePreset.isElder);
+      const name = specialDef ? specialDef.name : generateKoreanName();
+      const dob = generateBirthDate(isElder);
+      const genderDigit = dob.year >= 2000 ? (Math.random() > 0.5 ? '3' : '4') : (Math.random() > 0.5 ? '1' : '2');
+
+      const sprite = specialDef && specialDef.spritePreset
+        ? { ...specialDef.spritePreset }
+        : {
+            hairStyle: Math.floor(Math.random() * 5),
+            hairColor: pick(GAME_DATA.pools.hairColors),
+            skinTone: pick(GAME_DATA.pools.skinTones),
+            outfitColor: pick(GAME_DATA.pools.outfitColors),
+            glasses: Math.random() > 0.65
+          };
+
+      const workplace = pick(GAME_DATA.pools.workplaces);
+      const address = pick(GAME_DATA.pools.addresses);
+      const phone = pick(GAME_DATA.pools.phones);
+      const todayDateObj = parseISODateLocal(todayStr);
+      const acquireDate = formatDateISO(addDays(todayDateObj, -(1 + Math.floor(Math.random() * 3))));
+      const issuedDate = formatDateISO(addDays(todayDateObj, -(1100 + Math.floor(Math.random() * 600))));
+      let expiryDate = generateValidExpiry(day);
+
+      // Common identity fields
+      let idName = name;
+      let idDobFull = dob.full;
+      let idRrn = `${dob.rrnFront}-${genderDigit}******`;
+      let formName = name;
+      let formDobFull = dob.full;
+      let formWorkplace = workplace;
+      let formAcquireDate = acquireDate;
+      let formSignature = name;
+
+      // Dependent fields
+      const depName = generateOtherName(name);
+      const depRel = pick(GAME_DATA.pools.relations);
+      let certDepName = depName;
+      let certDepRel = depRel;
+      let certIssuedDate = specialDef?.id === 'regular_park_2' ? todayStr : generateRecentDate3M(day);
+
+      // Proxy fields
+      const proxyName = generateOtherName(name);
+      const proxyDob = generateBirthDate(false);
+      let proxyIdName = proxyName;
+      let proxyExpiry = generateValidExpiry(day);
+      let poaProxyName = proxyName;
+      let poaSign = name;
+
+      // Refund fields
+      const bankName = pick(GAME_DATA.pools.banks);
+      let bankOwner = name;
+      let bankAccount = `110-${100 + Math.floor(Math.random() * 899)}-${100000 + Math.floor(Math.random() * 899999)}`;
+      const refundAmount = `${(3 + Math.floor(Math.random() * 14)) * 10000}원`;
+
+      // Installment fields
+      const arrearsAmount = `${(25 + Math.floor(Math.random() * 90)) * 10000}원`;
+      let formArrearsAmount = arrearsAmount;
+      const installmentMonths = `${3 + Math.floor(Math.random() * 6)}개월`;
+
+      // Missing flags
+      const missingDocs = {};
+
+      // Apply specific error mutations
+      if (errorCode === 'NAME_MISMATCH') {
+        idName = generateOtherName(name);
+      } else if (errorCode === 'DOB_MISMATCH') {
+        formDobFull = generateOtherBirthDate(dob).full;
+      } else if (errorCode === 'ID_EXPIRED') {
+        expiryDate = generateExpiredDate(day);
+      } else if (errorCode === 'MANAGER_ACQUAINTANCE_INVALID') {
+        if (claimTypeId === 'refund_claim') bankOwner = generateOtherName(name);
+        else expiryDate = generateExpiredDate(day);
+      } else if (errorCode === 'MISSING_ID') {
+        missingDocs.id_card = true;
+      } else if (errorCode === 'MISSING_FORM') {
+        missingDocs[claimDef.primaryForm] = true;
+      } else if (errorCode === 'FORM_INCOMPLETE' || errorCode === 'ELDER_MINOR_GAP') {
+        if (claimTypeId === 'workplace_acquire') {
+          formWorkplace = '';
+          formSignature = '';
+        } else if (claimTypeId === 'dependent_reg') {
+          formSignature = '';
+        } else if (claimTypeId === 'refund_claim') {
+          bankAccount = '';
+        } else if (claimTypeId === 'installment_plan') {
+          formSignature = '';
+        }
+      } else if (errorCode === 'DOC_OUTDATED_3M') {
+        certIssuedDate = generateOutdated3M(day);
+      } else if (errorCode === 'DEP_NAME_MISMATCH') {
+        certDepName = generateOtherName(depName);
+      } else if (errorCode === 'MISSING_FAMILY_CERT') {
+        missingDocs.family_cert = true;
+      } else if (errorCode === 'PROXY_NO_SIGN') {
+        poaSign = '';
+      } else if (errorCode === 'PROXY_NAME_MISMATCH') {
+        poaProxyName = generateOtherName(proxyName);
+      } else if (errorCode === 'PROXY_ID_EXPIRED') {
+        proxyExpiry = generateExpiredDate(day);
+      } else if (errorCode === 'MISSING_POA') {
+        missingDocs.power_of_attorney = true;
+      } else if (errorCode === 'BANK_OWNER_MISMATCH') {
+        bankOwner = generateOtherName(name);
+      } else if (errorCode === 'MISSING_BANKBOOK') {
+        missingDocs.bankbook_copy = true;
+      } else if (errorCode === 'BANK_ACCOUNT_BLANK') {
+        bankAccount = '';
+      } else if (errorCode === 'ARREARS_AMOUNT_MISMATCH') {
+        formArrearsAmount = `${(12 + Math.floor(Math.random() * 10)) * 10000}원`;
+        if (formArrearsAmount === arrearsAmount) formArrearsAmount = '990000원';
+      } else if (errorCode === 'MISSING_ARREARS') {
+        missingDocs.arrears_cert = true;
+      }
+
+      // Build docs map cleanly according to claimDef.requiredDocs
+      const docBuilders = {
+        id_card: () => ({
+          docType: 'id_card',
+          title: claimTypeId === 'proxy_visit' ? '위임인 신분증 사본' : '본인 신분증 (주민등록증)',
+          fields: [
+            { id: 'id_name', key: 'name', label: '성명', value: idName, studyHint: true },
+            { id: 'id_dob', key: 'dob', label: '생년월일 (주민번호)', value: `${idDobFull} (${idRrn})`, compareVal: idDobFull },
+            { id: 'id_address', key: 'address', label: '주소', value: address },
+            { id: 'id_issued', key: 'issued', label: '발급일자', value: issuedDate },
+            { id: 'id_expiry', key: 'expiry', label: '유효기간', value: expiryDate, isExpiry: true, expired: expiryDate < todayStr, studyHint: true }
+          ]
+        }),
+        proxy_id_card: () => ({
+          docType: 'proxy_id_card',
+          title: '대리인 신분증',
+          fields: [
+            { id: 'pid_name', key: 'proxy_name', label: '대리인 성명', value: proxyIdName, studyHint: true },
+            { id: 'pid_dob', key: 'proxy_dob', label: '생년월일', value: proxyDob.full },
+            { id: 'pid_expiry', key: 'proxy_expiry', label: '유효기간', value: proxyExpiry, isExpiry: true, expired: proxyExpiry < todayStr, studyHint: true }
+          ]
+        }),
+        acquire_form: () => ({
+          docType: 'acquire_form',
+          title: '직장가입자 자격취득 신고서',
+          fields: [
+            { id: 'form_name', key: 'name', label: '신청인(가입자) 성명', value: formName, studyHint: true },
+            { id: 'form_dob', key: 'dob', label: '생년월일', value: formDobFull, compareVal: formDobFull },
+            { id: 'form_workplace', key: 'workplace', label: '사업장 명칭', value: formWorkplace, requiredNotBlank: true },
+            { id: 'form_acquire_date', key: 'acquire_date', label: '자격 취득일', value: formAcquireDate, requiredNotBlank: true },
+            { id: 'form_phone', key: 'phone', label: '연락처', value: phone },
+            { id: 'form_sign', key: 'signature', label: '신청인 서명', value: formSignature, requiredNotBlank: true, studyHint: true }
+          ]
+        }),
+        dependent_form: () => ({
+          docType: 'dependent_form',
+          title: '피부양자 등록 신청서',
+          fields: [
+            { id: 'dform_name', key: 'name', label: '부양자(신청인) 성명', value: formName, studyHint: true },
+            { id: 'dform_dob', key: 'dob', label: '부양자 생년월일', value: formDobFull, compareVal: formDobFull },
+            { id: 'dform_dep_name', key: 'dep_name', label: '피부양자 성명', value: depName, studyHint: true },
+            { id: 'dform_rel', key: 'relation', label: '가족관계', value: depRel },
+            { id: 'dform_sign', key: 'signature', label: '신청인 서명', value: formSignature, requiredNotBlank: true, studyHint: true }
+          ]
+        }),
+        family_cert: () => ({
+          docType: 'family_cert',
+          title: '가족관계증명서',
+          fields: [
+            { id: 'fc_name', key: 'name', label: '본인(부양자) 성명', value: name },
+            { id: 'fc_dep_name', key: 'dep_name', label: '대상자(피부양자) 성명', value: certDepName, studyHint: true },
+            { id: 'fc_rel', key: 'relation', label: '가족관계', value: certDepRel },
+            { id: 'fc_issued', key: 'fc_issued', label: '발급일자 (3개월 이내)', value: certIssuedDate, isIssued3M: true, outdated3M: certIssuedDate < threeMonthsAgoStr, studyHint: true }
+          ]
+        }),
+        power_of_attorney: () => ({
+          docType: 'power_of_attorney',
+          title: '민원 위임장',
+          fields: [
+            { id: 'poa_delegator', key: 'name', label: '위임인 성명', value: name },
+            { id: 'poa_proxy', key: 'proxy_name', label: '대리인 성명', value: poaProxyName, studyHint: true },
+            { id: 'poa_scope', key: 'scope', label: '위임 사무', value: '직장가입자 자격취득 신고 대행' },
+            { id: 'poa_sign', key: 'poa_sign', label: '위임인 서명', value: poaSign, requiredNotBlank: true, studyHint: true }
+          ]
+        }),
+        refund_form: () => ({
+          docType: 'refund_form',
+          title: '보험료 환급금 신청서',
+          fields: [
+            { id: 'rform_name', key: 'name', label: '신청인 성명', value: formName, studyHint: true },
+            { id: 'rform_dob', key: 'dob', label: '생년월일', value: formDobFull, compareVal: formDobFull },
+            { id: 'rform_amt', key: 'refund_amt', label: '환급 신청 금액', value: refundAmount },
+            { id: 'rform_sign', key: 'signature', label: '신청인 서명', value: formSignature, requiredNotBlank: true }
+          ]
+        }),
+        bankbook_copy: () => ({
+          docType: 'bankbook_copy',
+          title: '통장 사본 (입금 계좌)',
+          fields: [
+            { id: 'bk_bank', key: 'bank', label: '은행명', value: bankName },
+            { id: 'bk_owner', key: 'name', label: '예금주 성명', value: bankOwner, isBankOwner: true, studyHint: true },
+            { id: 'bk_acct', key: 'account', label: '계좌번호', value: bankAccount, requiredNotBlank: true, studyHint: true }
+          ]
+        }),
+        installment_form: () => ({
+          docType: 'installment_form',
+          title: '보험료 분할납부 신청서',
+          fields: [
+            { id: 'iform_name', key: 'name', label: '신청인 성명', value: formName, studyHint: true },
+            { id: 'iform_dob', key: 'dob', label: '생년월일', value: formDobFull, compareVal: formDobFull },
+            { id: 'iform_amt', key: 'amount', label: '신청 체납 금액', value: formArrearsAmount, studyHint: true },
+            { id: 'iform_months', key: 'months', label: '희망 분할 회차', value: installmentMonths },
+            { id: 'iform_sign', key: 'signature', label: '신청인 서명', value: formSignature, requiredNotBlank: true, studyHint: true }
+          ]
+        }),
+        arrears_cert: () => ({
+          docType: 'arrears_cert',
+          title: '체납 내역 확인서',
+          fields: [
+            { id: 'ac_name', key: 'name', label: '체납자 성명', value: name, studyHint: true },
+            { id: 'ac_amt', key: 'amount', label: '체납 확인 금액', value: arrearsAmount, studyHint: true },
+            { id: 'ac_date', key: 'ac_date', label: '조회 기준일', value: todayStr }
+          ]
+        })
+      };
+
+      const docs = {};
+      claimDef.requiredDocs.forEach(dt => {
+        docs[dt] = missingDocs[dt] ? null : docBuilders[dt]();
+      });
+
+      const greeting = specialDef
+        ? specialDef.greeting
+        : pick(GAME_DATA.dialogueTemplates.greetingsByClaim[claimTypeId]);
+
+      return {
+        ticketNo,
+        ticketLabel: `번호 ${String(ticketNo).padStart(3, '0')}`,
+        claimTypeId,
+        specialKey: specialDef ? specialDef.id : null,
+        specialDef,
+        roleTag: specialDef ? specialDef.roleTag : `일반 민원 · ${claimDef.shortName}`,
+        patienceSpeed: specialDef && specialDef.patienceSpeed ? specialDef.patienceSpeed : 1,
+        citizenName: name,
+        sprite,
+        errorCode,
+        greeting,
+        docs
+      };
+    }
+
+    /* =========================================================================
+       [게임 상태 관리]
+       ========================================================================= */
+    const state = {
+      phase: 'TITLE',
+      playerName: '김건보',
+      day: 1,
+      elapsedRealSec: 0,
+      queueRemaining: 6,
+      queueBumpTimer: 0,
+      cases: [],
+      caseIndex: 0,
+      currentCase: null,
+      isTransitioning: false,
+      patience: 100,
+      impatientWarned: false,
+      impatientWarned2: false,
+
+      inspectMode: false,
+      selectedItems: [],
+      sideBySideMobile: false,
+      activeManualTabIdx: 0,
+
+      speechFull: '',
+      speechShownLen: 0,
+      typingTimer: null,
+
+      anim: {
+        x: -30,
+        targetX: 112,
+        walking: false,
+        step: 0,
+        expression: 'neutral'
+      },
+
+      stats: {
+        processed: 0,
+        correct: 0,
+        mistakes: 0,
+        vocPraise: 0,
+        vocComplaint: 0,
+        mistakeLog: [],
+        afterWorkChoice: null
+      },
+
+      campaign: {
+        totalProcessed: 0,
+        totalCorrect: 0,
+        totalMistakes: 0,
+        auditStrikes: 0,
+        vocPraise: 0,
+        vocComplaint: 0,
+        activeBuff: null, // 'study' | 'dinner' | 'rest'
+        restShieldAvailable: false
+      }
+    };
+
+    const el = {
+      app: document.getElementById('app'),
+      hudDayInfo: document.getElementById('hudDayInfo'),
+      hudQueueCount: document.getElementById('hudQueueCount'),
+      hudClockBox: document.getElementById('hudClockBox'),
+      hudClockTime: document.getElementById('hudClockTime'),
+      hudTodayDate: document.getElementById('hudTodayDate'),
+      hudProcessedSummary: document.getElementById('hudProcessedSummary'),
+      hudBuffSummary: document.getElementById('hudBuffSummary'),
+      btnMobileManual: document.getElementById('btnMobileManual'),
+      btnMute: document.getElementById('btnMute'),
+      btnPause: document.getElementById('btnPause'),
+
+      boothCanvas: document.getElementById('boothCanvas'),
+      ticketOverlay: document.getElementById('ticketOverlay'),
+      citizenRoleTag: document.getElementById('citizenRoleTag'),
+      patienceWrap: document.getElementById('patienceWrap'),
+      patienceFill: document.getElementById('patienceFill'),
+      speechBubble: document.getElementById('speechBubble'),
+      speechSpeaker: document.getElementById('speechSpeaker'),
+      speechText: document.getElementById('speechText'),
+
+      deskArea: document.getElementById('deskArea'),
+      deskClaimTitle: document.getElementById('deskClaimTitle'),
+      btnToggleSideBySide: document.getElementById('btnToggleSideBySide'),
+      btnClearInspect: document.getElementById('btnClearInspect'),
+      inspectBanner: document.getElementById('inspectBanner'),
+      inspectBannerText: document.getElementById('inspectBannerText'),
+      btnCancelInspect: document.getElementById('btnCancelInspect'),
+      inspectResultBanner: document.getElementById('inspectResultBanner'),
+      inspectResultText: document.getElementById('inspectResultText'),
+      docsContainer: document.getElementById('docsContainer'),
+
+      manualPanel: document.getElementById('manualPanel'),
+      manualBookTitle: document.getElementById('manualBookTitle'),
+      btnCloseManualMobile: document.getElementById('btnCloseManualMobile'),
+      manualTabs: document.getElementById('manualTabs'),
+      manualPageBody: document.getElementById('manualPageBody'),
+
+      btnInspect: document.getElementById('btnInspect'),
+      btnApprove: document.getElementById('btnApprove'),
+      btnReject: document.getElementById('btnReject'),
+      btnSupplement: document.getElementById('btnSupplement'),
+
+      feedbackSlip: document.getElementById('feedbackSlip'),
+      modalTitle: document.getElementById('modalTitle'),
+      titleCanvas: document.getElementById('titleCanvas'),
+      btnStartGame: document.getElementById('btnStartGame'),
+
+      modalNameSetup: document.getElementById('modalNameSetup'),
+      inputPlayerName: document.getElementById('inputPlayerName'),
+      btnRandomName: document.getElementById('btnRandomName'),
+      namePreviewText: document.getElementById('namePreviewText'),
+      nameInputError: document.getElementById('nameInputError'),
+      btnConfirmName: document.getElementById('btnConfirmName'),
+
+      modalMessenger: document.getElementById('modalMessenger'),
+      messengerBody: document.getElementById('messengerBody'),
+      btnConfirmMessenger: document.getElementById('btnConfirmMessenger'),
+
+      modalZoom: document.getElementById('modalZoom'),
+      zoomModalTitle: document.getElementById('zoomModalTitle'),
+      zoomModalContent: document.getElementById('zoomModalContent'),
+      btnCloseZoom: document.getElementById('btnCloseZoom'),
+
+      modalPause: document.getElementById('modalPause'),
+      btnResume: document.getElementById('btnResume'),
+      btnRestartFromPause: document.getElementById('btnRestartFromPause'),
+
+      modalSettlement: document.getElementById('modalSettlement'),
+      settlementTitle: document.getElementById('settlementTitle'),
+      settlementSubtitle: document.getElementById('settlementSubtitle'),
+      endingBannerWrap: document.getElementById('endingBannerWrap'),
+      settlementStats: document.getElementById('settlementStats'),
+      settlementMistakes: document.getElementById('settlementMistakes'),
+      afterWorkSection: document.getElementById('afterWorkSection'),
+      afterWorkGrid: document.getElementById('afterWorkGrid'),
+      btnNextDay: document.getElementById('btnNextDay'),
+      btnRestartCampaign: document.getElementById('btnRestartCampaign')
+    };
+
+    /* =========================================================================
+       [초기화 및 이벤트 바인딩]
+       ========================================================================= */
+    let lastFrameTime = performance.now();
+    let feedbackTimeout = null;
+
+    function sanitizePlayerName(raw) {
+      let cleaned = (raw || '').replace(/[<>&"'`]/g, '').trim().replace(/\s+/g, '');
+      cleaned = cleaned.replace(/(주임님|주임)$/, '').trim();
+      return cleaned.slice(0, 8);
+    }
+
+    function formatWithPlayer(text) {
+      if (!text) return '';
+      return String(text).replace(/\{name\}/g, state.playerName);
+    }
+
+    function updateNameSetupPreview() {
+      const candidate = sanitizePlayerName(el.inputPlayerName.value);
+      const display = candidate || 'OO';
+      el.namePreviewText.textContent = `창구 호칭: ${display} 주임`;
+      el.btnConfirmName.textContent = candidate
+        ? `${candidate} 주임으로 출근하기 (1일차)`
+        : '이름을 입력해 주세요';
+      if (candidate) el.nameInputError.textContent = '';
+    }
+
+    function openNameSetupModal() {
+      state.phase = 'NAME_SETUP';
+      el.inputPlayerName.value = state.playerName || '김건보';
+      el.nameInputError.textContent = '';
+      updateNameSetupPreview();
+      el.modalNameSetup.classList.add('open');
+      setTimeout(() => {
+        el.inputPlayerName.focus();
+        el.inputPlayerName.select();
+      }, 60);
+    }
+
+    function confirmPlayerNameAndStart() {
+      const cleaned = sanitizePlayerName(el.inputPlayerName.value);
+      if (!cleaned) {
+        el.nameInputError.textContent = '주임 호칭으로 불릴 이름(1자 이상)을 입력해 주세요.';
+        el.inputPlayerName.focus();
+        SoundFX.playAlert();
+        return;
+      }
+      state.playerName = cleaned;
+      el.modalNameSetup.classList.remove('open');
+      resetCampaignAndOpenDay1();
+    }
+
+    function init() {
+      GAME_DATA.config.datesByDay = buildDatesByDay(GAME_DATA.config.totalDays);
+      el.hudDayInfo.textContent = `${GAME_DATA.config.datesByDay[1].label} · ${state.playerName} 주임`;
+      el.hudTodayDate.textContent = GAME_DATA.config.datesByDay[1].dateStr.slice(5);
+      PixelArt.renderTitleHero(el.titleCanvas);
+      renderManual();
+      bindEvents();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resetCampaignAndOpenDay1() {
+      GAME_DATA.config.datesByDay = buildDatesByDay(GAME_DATA.config.totalDays);
+      state.campaign = {
+        totalProcessed: 0,
+        totalCorrect: 0,
+        totalMistakes: 0,
+        auditStrikes: 0,
+        vocPraise: 0,
+        vocComplaint: 0,
+        activeBuff: null,
+        restShieldAvailable: false
+      };
+      state.day = 1;
+      openMessenger(1);
+    }
+
+    function bindEvents() {
+      el.btnStartGame.addEventListener('click', () => {
+        el.modalTitle.classList.remove('open');
+        openNameSetupModal();
+      });
+
+      el.inputPlayerName.addEventListener('input', updateNameSetupPreview);
+      el.inputPlayerName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmPlayerNameAndStart();
+        }
+      });
+
+      el.btnRandomName.addEventListener('click', () => {
+        el.inputPlayerName.value = generateKoreanName();
+        updateNameSetupPreview();
+        SoundFX.playTypeBlip();
+      });
+
+      el.btnConfirmName.addEventListener('click', confirmPlayerNameAndStart);
+
+      el.btnConfirmMessenger.addEventListener('click', () => {
+        el.modalMessenger.classList.remove('open');
+        startDay(state.day);
+      });
+
+      el.btnMute.addEventListener('click', () => {
+        const next = !SoundFX.isMuted();
+        SoundFX.setMuted(next);
+        el.btnMute.textContent = next ? '소리 꺼짐' : '소리 켜짐';
+      });
+
+      el.btnPause.addEventListener('click', () => {
+        if (state.phase === 'PLAYING') {
+          state.phase = 'PAUSED';
+          el.modalPause.classList.add('open');
+        }
+      });
+
+      el.btnResume.addEventListener('click', () => {
+        if (state.phase === 'PAUSED') {
+          state.phase = 'PLAYING';
+          el.modalPause.classList.remove('open');
+        }
+      });
+
+      el.btnRestartFromPause.addEventListener('click', () => {
+        el.modalPause.classList.remove('open');
+        openNameSetupModal();
+      });
+
+      el.btnNextDay.addEventListener('click', () => {
+        if (!state.stats.afterWorkChoice) return;
+        const nextDay = state.day + 1;
+        state.day = nextDay;
+        el.modalSettlement.classList.remove('open');
+        openMessenger(nextDay);
+      });
+
+      el.btnRestartCampaign.addEventListener('click', () => {
+        el.modalSettlement.classList.remove('open');
+        openNameSetupModal();
+      });
+
+      el.speechBubble.addEventListener('click', () => {
+        if (state.speechShownLen < state.speechFull.length) {
+          state.speechShownLen = state.speechFull.length;
+          el.speechText.textContent = state.speechFull;
+        }
+      });
+
+      el.btnMobileManual.addEventListener('click', () => {
+        el.manualPanel.classList.add('open-mobile');
+      });
+      el.btnCloseManualMobile.addEventListener('click', () => {
+        el.manualPanel.classList.remove('open-mobile');
+      });
+
+      el.btnToggleSideBySide.addEventListener('click', () => {
+        state.sideBySideMobile = !state.sideBySideMobile;
+        el.docsContainer.classList.toggle('side-by-side-mobile', state.sideBySideMobile);
+        el.btnToggleSideBySide.classList.toggle('active', state.sideBySideMobile);
+      });
+
+      el.btnCloseZoom.addEventListener('click', () => {
+        el.modalZoom.classList.remove('open');
+      });
+      el.modalZoom.addEventListener('click', (e) => {
+        if (e.target === el.modalZoom) el.modalZoom.classList.remove('open');
+      });
+
+      el.btnInspect.addEventListener('click', toggleInspectMode);
+      el.btnCancelInspect.addEventListener('click', () => setInspectMode(false));
+      el.btnClearInspect.addEventListener('click', clearInspectSelection);
+
+      el.hudClockBox.addEventListener('click', () => {
+        if (!state.inspectMode || !state.currentCase || state.isTransitioning) return;
+        const todayStr = GAME_DATA.config.datesByDay[state.day].dateStr;
+        handleInspectPick({
+          source: 'clock',
+          id: 'today_clock',
+          label: '오늘 날짜',
+          value: todayStr
+        });
+      });
+
+      el.btnApprove.addEventListener('click', () => handleStamp('APPROVE'));
+      el.btnReject.addEventListener('click', () => handleStamp('REJECT'));
+      el.btnSupplement.addEventListener('click', () => handleStamp('SUPPLEMENT'));
+    }
+
+    function openMessenger(day) {
+      state.day = day;
+      state.phase = 'MESSENGER';
+      SoundFX.playMessenger();
+      const msgs = GAME_DATA.messengerByDay[day] || [];
+      el.messengerBody.innerHTML = msgs.map(m => `
+        <div class="msg-bubble">
+          <div class="msg-sender">${m.sender}</div>
+          <div>${formatWithPlayer(m.text)}</div>
+        </div>
+      `).join('');
+      el.modalMessenger.classList.add('open');
+    }
+
+    function startDay(day) {
+      state.day = day;
+      state.phase = 'PLAYING';
+      state.elapsedRealSec = 0;
+      state.cases = buildDayQueue(day);
+      state.queueRemaining = Math.max(0, state.cases.length - 1);
+      state.queueBumpTimer = 0;
+      state.caseIndex = 0;
+      state.currentCase = null;
+      state.isTransitioning = false;
+
+      // Activate rest shield if chosen yesterday
+      state.campaign.restShieldAvailable = state.campaign.activeBuff?.id === 'rest';
+
+      state.stats = {
+        processed: 0,
+        correct: 0,
+        mistakes: 0,
+        vocPraise: 0,
+        vocComplaint: 0,
+        mistakeLog: [],
+        afterWorkChoice: null
+      };
+
+      el.hudDayInfo.textContent = `${GAME_DATA.config.datesByDay[day].label} · ${state.playerName} 주임`;
+      el.hudTodayDate.textContent = GAME_DATA.config.datesByDay[day].dateStr.slice(5);
+      el.hudBuffSummary.textContent = state.campaign.activeBuff
+        ? `적용 버프: ${state.campaign.activeBuff.buffLabel}`
+        : `적용 버프: 없음 (${day}일차)`;
+
+      // Open newest rule tab automatically when a new day starts
+      const pages = getManualPagesForDay(day);
+      state.activeManualTabIdx = day === 1 ? 0 : Math.max(0, pages.length - 2);
+
+      setInspectMode(false);
+      updateHudSummary();
+      renderManual();
+      callNextCitizen();
+    }
+
+    /* =========================================================================
+       [매뉴얼 렌더링 (일자별 누적)]
+       ========================================================================= */
+    function getManualPagesForDay(day) {
+      const m = GAME_DATA.manualPagesByDay;
+      const pages = [m.commonBasics, m.day1Acquire];
+      if (day >= 2) pages.push(m.day2Dependent);
+      if (day >= 3) pages.push(m.day3Proxy);
+      if (day >= 4) pages.push(m.day4Refund);
+      if (day >= 5) pages.push(m.day5Installment);
+      pages.push(m.specialGuide);
+      return pages;
+    }
+
+    function renderManual() {
+      const pages = getManualPagesForDay(state.day);
+      if (state.activeManualTabIdx >= pages.length) state.activeManualTabIdx = 0;
+
+      el.manualBookTitle.textContent = `업무 매뉴얼 (${state.day}일차 적용분)`;
+      el.manualTabs.innerHTML = pages.map((p, idx) => `
+        <button class="manual-tab ${idx === state.activeManualTabIdx ? 'active' : ''}" data-tab="${idx}" type="button">
+          ${p.tabLabel}
+        </button>
+      `).join('');
+
+      el.manualTabs.querySelectorAll('.manual-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeManualTabIdx = Number(btn.dataset.tab);
+          renderManual();
+        });
+      });
+
+      const page = pages[state.activeManualTabIdx];
+      el.manualPageBody.innerHTML = `
+        <h3 class="manual-page-h">${page.title}</h3>
+        <ul class="manual-rule-list">
+          ${page.rules.map(r => `
+            <li class="manual-rule-item">
+              <strong class="rule-head">${r.head}</strong>
+              <div style="white-space:pre-line;">${r.body}</div>
+              ${r.actionText ? `<span class="rule-action-tag ${r.actionClass || ''}">${r.actionText}</span>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    }
+
+    /* =========================================================================
+       [민원인 호출 / 퇴장 / 책상 서류 렌더링]
+       ========================================================================= */
+    function callNextCitizen() {
+      if (state.phase !== 'PLAYING') return;
+      const maxSec = GAME_DATA.config.dayDurationByDay[state.day] || 120;
+      if (state.elapsedRealSec >= maxSec || state.caseIndex >= state.cases.length) {
+        el.hudClockTime.textContent = '18:00';
+        finishDay(false);
+        return;
+      }
+
+      const c = state.cases[state.caseIndex];
+      state.currentCase = c;
+      state.isTransitioning = true;
+      state.patience = 100;
+      state.impatientWarned = false;
+      state.impatientWarned2 = false;
+      setInspectMode(false);
+      hideInspectResult();
+
+      el.ticketOverlay.textContent = c.ticketLabel;
+      el.citizenRoleTag.textContent = c.roleTag;
+      el.patienceWrap.style.visibility = 'visible';
+      updatePatienceUI();
+      setActionButtonsEnabled(false);
+
+      el.docsContainer.innerHTML = `<div style="grid-column:1/-1;padding:30px;text-align:center;color:#dfd6c1;font-size:13px;">민원인이 창구로 이동 중입니다...</div>`;
+
+      SoundFX.playTicketChime();
+      setSpeech('안내 방송', `${c.ticketLabel} 민원인, 제3창구로 오시기 바랍니다.`);
+
+      state.anim.x = -30;
+      state.anim.targetX = 112;
+      state.anim.walking = true;
+      state.anim.expression = c.specialKey === 'impatient_boss' ? 'angry'
+        : c.specialKey === 'kind_elder' ? 'sad'
+        : c.specialKey === 'suspicious_trap' ? 'nervous'
+        : 'neutral';
+
+      setTimeout(() => {
+        if (state.phase !== 'PLAYING' && state.phase !== 'PAUSED') return;
+        state.anim.walking = false;
+        state.isTransitioning = false;
+        SoundFX.playPaperSlide();
+        renderDeskDocuments(c);
+        setSpeech(c.citizenName, c.greeting);
+        setActionButtonsEnabled(true);
+      }, 600);
+    }
+
+    function renderDeskDocuments(c) {
+      const claim = GAME_DATA.claimTypes[c.claimTypeId];
+      el.deskClaimTitle.textContent = `접수 서류 책상 — ${claim.title}`;
+      el.docsContainer.innerHTML = '';
+
+      claim.requiredDocs.forEach(docType => {
+        const docObj = c.docs[docType];
+        const meta = GAME_DATA.docMeta[docType];
+        if (!docObj) {
+          const missingEl = document.createElement('div');
+          missingEl.className = 'doc-card missing-doc';
+          missingEl.innerHTML = `
+            <div style="font-size:15px;font-weight:800;margin-bottom:4px;">[${meta.title} 미제출]</div>
+            <div style="font-size:12px;color:#cbd5e1;">민원인이 해당 서류를 제출하지 않았습니다.</div>
+          `;
+          if (docType === claim.primaryForm) {
+            const stamp = document.createElement('div');
+            stamp.className = 'stamp-mark';
+            stamp.id = 'activeStampMark';
+            missingEl.appendChild(stamp);
+          }
+          missingEl.addEventListener('click', () => {
+            if (!state.inspectMode || state.isTransitioning) return;
+            handleInspectPick({
+              source: 'missing',
+              id: `missing_${docType}`,
+              label: `${meta.title} 누락`,
+              value: '미제출'
+            });
+          });
+          el.docsContainer.appendChild(missingEl);
+        } else {
+          el.docsContainer.appendChild(createDocCardElement(docObj, c, docType === claim.primaryForm));
+        }
+      });
+    }
+
+    function createDocCardElement(doc, citizenCase, attachStampTarget = false) {
+      const card = document.createElement('article');
+      const meta = GAME_DATA.docMeta[doc.docType] || {};
+      const isId = doc.docType === 'id_card' || doc.docType === 'proxy_id_card';
+      card.className = `doc-card ${meta.styleClass || ''}`;
+
+      const header = document.createElement('div');
+      header.className = 'doc-header';
+      header.innerHTML = `
+        <span class="doc-title">${doc.title}</span>
+        <button class="doc-zoom-btn" type="button">확대</button>
+      `;
+      header.querySelector('.doc-zoom-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openZoomModal(doc, citizenCase);
+      });
+      card.appendChild(header);
+
+      const fieldsWrap = document.createElement('div');
+      fieldsWrap.className = 'doc-fields';
+      const hasStudyBuff = state.campaign.activeBuff?.id === 'study';
+
+      doc.fields.forEach(f => {
+        const fEl = document.createElement('div');
+        fEl.className = `doc-field ${hasStudyBuff && f.studyHint ? 'study-hint' : ''}`;
+        fEl.dataset.fieldId = f.id;
+        const valText = f.value ? f.value : '(미기재 / 공란)';
+        fEl.innerHTML = `
+          <span class="field-label">
+            <span>${f.label}</span>
+            ${hasStudyBuff && f.studyHint ? '<span class="study-hint-tag">법령체크</span>' : ''}
+          </span>
+          <span class="field-value ${!f.value ? 'blank-val' : ''}">${valText}</span>
+        `;
+        fEl.addEventListener('click', () => {
+          if (!state.inspectMode || state.isTransitioning) return;
+          handleInspectPick({
+            source: 'field',
+            docType: doc.docType,
+            id: f.id,
+            key: f.key,
+            label: `${doc.title.split(' ')[0]} ${f.label}`,
+            value: f.value || '(공란)',
+            fieldObj: f,
+            element: fEl
+          });
+        });
+        fieldsWrap.appendChild(fEl);
+      });
+
+      if (isId) {
+        const body = document.createElement('div');
+        body.className = 'id-body';
+        const photoFrame = document.createElement('div');
+        photoFrame.className = 'id-photo-frame';
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = 74;
+        pCanvas.height = 90;
+        if (doc.docType === 'proxy_id_card') {
+          PixelArt.renderIdPhoto(pCanvas, {
+            hairStyle: (citizenCase.sprite.hairStyle + 2) % 5,
+            hairColor: '#2d3142',
+            skinTone: '#f3cfb3',
+            outfitColor: '#3d5a45',
+            glasses: !citizenCase.sprite.glasses
+          });
+        } else {
+          PixelArt.renderIdPhoto(pCanvas, citizenCase.sprite);
+        }
+        photoFrame.appendChild(pCanvas);
+        body.appendChild(photoFrame);
+        body.appendChild(fieldsWrap);
+        card.appendChild(body);
+
+        const foot = document.createElement('div');
+        foot.className = 'doc-footer-note';
+        foot.innerHTML = `<span>가상 행정안전부 발행</span><span>본인 확인용</span>`;
+        card.appendChild(foot);
+      } else {
+        card.appendChild(fieldsWrap);
+        const foot = document.createElement('div');
+        foot.className = 'doc-footer-note';
+        foot.innerHTML = `<span>국민건강보험공단 접수 서류</span><span>심사 대상</span>`;
+        card.appendChild(foot);
+      }
+
+      if (attachStampTarget) {
+        const stamp = document.createElement('div');
+        stamp.className = 'stamp-mark';
+        stamp.id = 'activeStampMark';
+        card.appendChild(stamp);
+      }
+
+      return card;
+    }
+
+    function openZoomModal(doc, citizenCase) {
+      el.zoomModalTitle.textContent = `${doc.title} — 확대 보기`;
+      el.zoomModalContent.innerHTML = '';
+      const clone = createDocCardElement(doc, citizenCase, false);
+      const zBtn = clone.querySelector('.doc-zoom-btn');
+      if (zBtn) zBtn.remove();
+      el.zoomModalContent.appendChild(clone);
+      el.modalZoom.classList.add('open');
+    }
+
+    /* =========================================================================
+       [불일치 지적 시스템 (전 일자 지원)]
+       ========================================================================= */
+    function toggleInspectMode() {
+      if (state.isTransitioning || !state.currentCase) return;
+      setInspectMode(!state.inspectMode);
+    }
+
+    function setInspectMode(active) {
+      state.inspectMode = active;
+      state.selectedItems = [];
+      el.btnInspect.classList.toggle('active', active);
+      el.inspectBanner.classList.toggle('show', active);
+      el.deskArea.classList.toggle('inspect-mode', active);
+      el.hudClockBox.classList.toggle('inspect-target', active);
+      el.hudClockBox.classList.remove('selected-target');
+      el.btnClearInspect.style.display = active ? 'inline-block' : 'none';
+
+      document.querySelectorAll('.doc-card.missing-doc').forEach(node => {
+        node.classList.toggle('inspect-target', active);
+      });
+      clearFieldHighlights();
+
+      if (active) {
+        el.inspectBannerText.textContent = '불일치 지적 모드: 비교할 두 항목을 차례로 탭하세요 (유효기간·발급일·공란은 시계 또는 동일 항목 2회 탭)';
+      }
+    }
+
+    function clearInspectSelection() {
+      state.selectedItems = [];
+      clearFieldHighlights();
+      el.hudClockBox.classList.remove('selected-target');
+      el.inspectBannerText.textContent = '선택이 초기화되었습니다. 비교할 항목을 다시 탭하세요.';
+    }
+
+    function clearFieldHighlights() {
+      document.querySelectorAll('.doc-field.selected-field').forEach(n => n.classList.remove('selected-field'));
+    }
+
+    function hideInspectResult() {
+      el.inspectResultBanner.classList.remove('show', 'mismatch', 'match');
+    }
+
+    function showInspectResult(isMismatch, msg) {
+      el.inspectResultBanner.classList.remove('mismatch', 'match');
+      el.inspectResultBanner.classList.add('show', isMismatch ? 'mismatch' : 'match');
+      el.inspectResultText.textContent = msg;
+    }
+
+    function handleInspectPick(item) {
+      if (item.source === 'missing') {
+        SoundFX.playAlert();
+        showInspectResult(true, `지적: [${item.label}] 상태입니다! ([보완 요청] 대상)`);
+        state.anim.expression = 'flustered';
+        setSpeech(state.currentCase.citizenName, `아이고! ${item.label.replace(' 누락', '')}을(를) 깜빡하고 안 냈나 봐요!`);
+        setInspectMode(false);
+        return;
+      }
+
+      if (state.selectedItems.length === 1 && state.selectedItems[0].id === item.id) {
+        evaluateSingleFieldInspect(item);
+        setInspectMode(false);
+        return;
+      }
+
+      state.selectedItems.push(item);
+      if (item.element) item.element.classList.add('selected-field');
+      if (item.source === 'clock') el.hudClockBox.classList.add('selected-target');
+
+      if (state.selectedItems.length === 1) {
+        el.inspectBannerText.textContent = `1번째 선택: [${item.label}] — 비교할 2번째 항목(또는 같은 항목 한 번 더)을 탭하세요.`;
+        return;
+      }
+
+      const [a, b] = state.selectedItems;
+      evaluatePairInspect(a, b);
+      setInspectMode(false);
+    }
+
+    function evaluateSingleFieldInspect(item) {
+      const c = state.currentCase;
+      const f = item.fieldObj;
+      if (!f) return;
+
+      if (f.isExpiry) {
+        if (f.expired) {
+          SoundFX.playAlert();
+          showInspectResult(true, `지적: [${item.label}] (${item.value}) 유효기간이 만료되었습니다! ([반려] 대상)`);
+          state.anim.expression = 'flustered';
+          const key = item.docType === 'proxy_id_card' ? 'PROXY_ID_EXPIRED' : 'ID_EXPIRED';
+          const line = c.specialDef?.discrepancyReaction || GAME_DATA.dialogueTemplates.discrepancyReactions[key];
+          setSpeech(c.citizenName, line);
+        } else {
+          SoundFX.playSuccessChime();
+          showInspectResult(false, `확인: [${item.label}] (${item.value}) 유효기간은 정상입니다.`);
+        }
+        return;
+      }
+
+      if (f.isIssued3M) {
+        if (f.outdated3M) {
+          SoundFX.playAlert();
+          showInspectResult(true, `지적: 가족관계증명서 발급일(${item.value})이 3개월을 넘었습니다! ([보완 요청] 대상)`);
+          state.anim.expression = 'flustered';
+          setSpeech(c.citizenName, GAME_DATA.dialogueTemplates.discrepancyReactions.DOC_OUTDATED_3M);
+        } else {
+          SoundFX.playSuccessChime();
+          showInspectResult(false, `확인: 가족관계증명서 발급일(${item.value})은 3개월 이내 정상입니다.`);
+        }
+        return;
+      }
+
+      if (f.requiredNotBlank && !f.value) {
+        SoundFX.playAlert();
+        showInspectResult(true, `지적: [${item.label}] 항목이 공란입니다! ([보완 요청] 대상)`);
+        state.anim.expression = 'flustered';
+        const line = c.specialDef?.discrepancyReaction || GAME_DATA.dialogueTemplates.discrepancyReactions.FORM_INCOMPLETE;
+        setSpeech(c.citizenName, line);
+        return;
+      }
+
+      showInspectResult(false, `확인: [${item.label}] 항목 단독으로는 특이사항이 없습니다. 다른 서류와 대조해 보세요.`);
+    }
+
+    function evaluatePairInspect(a, b) {
+      const c = state.currentCase;
+      if ((a.source === 'clock' && (b.fieldObj?.isExpiry || b.fieldObj?.isIssued3M)) ||
+          (b.source === 'clock' && (a.fieldObj?.isExpiry || a.fieldObj?.isIssued3M))) {
+        evaluateSingleFieldInspect(a.source === 'clock' ? b : a);
+        return;
+      }
+
+      if (a.key && b.key && a.key === b.key && a.docType !== b.docType) {
+        const valA = a.fieldObj.compareVal || a.fieldObj.value;
+        const valB = b.fieldObj.compareVal || b.fieldObj.value;
+        const keyNames = {
+          name: '성명(명의)',
+          dob: '생년월일',
+          dep_name: '피부양자 성명',
+          relation: '가족관계',
+          proxy_name: '대리인 성명',
+          amount: '체납 금액'
+        };
+        const keyLabel = keyNames[a.key] || '항목';
+
+        if (valA !== valB) {
+          SoundFX.playAlert();
+          const isBankCheck = a.fieldObj.isBankOwner || b.fieldObj.isBankOwner;
+          const extraMsg = isBankCheck ? ' (통장 예금주 명의 불일치)' : '';
+          showInspectResult(true, `불일치 지적: 두 서류의 [${keyLabel}]이 다릅니다${extraMsg}! (${valA} ≠ ${valB}) → [반려] 대상`);
+          state.anim.expression = 'flustered';
+
+          let errKey = 'NAME_MISMATCH';
+          if (a.key === 'dob') errKey = 'DOB_MISMATCH';
+          else if (a.key === 'dep_name' || a.key === 'relation') errKey = 'DEP_NAME_MISMATCH';
+          else if (a.key === 'proxy_name') errKey = 'PROXY_NAME_MISMATCH';
+          else if (a.key === 'amount') errKey = 'ARREARS_AMOUNT_MISMATCH';
+          else if (isBankCheck) errKey = 'BANK_OWNER_MISMATCH';
+
+          const react = c.specialDef?.discrepancyReaction || GAME_DATA.dialogueTemplates.discrepancyReactions[errKey];
+          setSpeech(c.citizenName, react);
+        } else {
+          SoundFX.playSuccessChime();
+          showInspectResult(false, `일치함: 두 서류의 [${keyLabel}]이 동일합니다 (${valA}).`);
+          setSpeech(c.citizenName, GAME_DATA.dialogueTemplates.discrepancyReactions.MATCH_OK);
+        }
+        return;
+      }
+
+      if (a.fieldObj?.requiredNotBlank && !a.fieldObj.value) {
+        evaluateSingleFieldInspect(a);
+        return;
+      }
+      if (b.fieldObj?.requiredNotBlank && !b.fieldObj.value) {
+        evaluateSingleFieldInspect(b);
+        return;
+      }
+
+      showInspectResult(false, `비교 결과: [${a.label}]과(와) [${b.label}]은 서로 대조할 수 있는 동일 항목이 아닙니다.`);
+    }
+
+    /* =========================================================================
+       [도장 결재 및 결과 판정]
+       ========================================================================= */
+    function handleStamp(action) {
+      if (state.isTransitioning || !state.currentCase || state.phase !== 'PLAYING') return;
+      state.isTransitioning = true;
+      setInspectMode(false);
+      setActionButtonsEnabled(false);
+
+      const c = state.currentCase;
+      const errDef = GAME_DATA.errorTypes[c.errorCode];
+      const isCorrect = errDef.validActions.includes(action);
+
+      SoundFX.playStamp(action);
+      el.app.classList.remove('shake-active');
+      void el.app.offsetWidth;
+      el.app.classList.add('shake-active');
+
+      const stampEl = document.getElementById('activeStampMark');
+      if (stampEl) {
+        stampEl.textContent = action === 'APPROVE' ? '승인' : action === 'REJECT' ? '반려' : '보완요청';
+        stampEl.className = `stamp-mark ${action} stamped`;
+      }
+
+      state.stats.processed += 1;
+      state.campaign.totalProcessed += 1;
+
+      let shielded = false;
+      if (isCorrect) {
+        state.stats.correct += 1;
+        state.campaign.totalCorrect += 1;
+      } else if (state.campaign.restShieldAvailable && c.specialKey !== 'manager_friend') {
+        // Rest buff blocks 1 non-corruption mistake
+        state.campaign.restShieldAvailable = false;
+        shielded = true;
+        state.stats.correct += 1;
+        state.campaign.totalCorrect += 1;
+      } else {
+        state.stats.mistakes += 1;
+        state.campaign.totalMistakes += 1;
+        state.stats.mistakeLog.push({
+          ticketLabel: c.ticketLabel,
+          citizenName: c.citizenName,
+          chosen: actionLabel(action),
+          reason: errDef.mistakeReason
+        });
+
+        if (state.campaign.totalMistakes % GAME_DATA.config.mistakesPerAudit === 0) {
+          state.campaign.auditStrikes += 1;
+        }
+      }
+
+      if (c.specialKey === 'manager_friend' && action === 'APPROVE') {
+        state.campaign.auditStrikes += 1;
+        state.stats.mistakeLog.push({
+          ticketLabel: c.ticketLabel,
+          citizenName: c.citizenName,
+          chosen: '승인 (청탁)',
+          reason: '지사장 지인 청탁 건을 부당 승인하여 감사 지적 +1회가 즉시 부과되었습니다!'
+        });
+      }
+
+      let reactionText = '';
+      let slipMsg = '';
+      let slipKind = isCorrect || shielded ? 'good' : 'bad';
+
+      if (c.specialDef) {
+        if (action === 'APPROVE') reactionText = c.specialDef.approveReaction;
+        else if (action === 'REJECT') reactionText = c.specialDef.rejectReaction;
+        else reactionText = c.specialDef.supplementReaction;
+
+        if (c.specialKey === 'kind_elder') {
+          if (action === 'SUPPLEMENT') {
+            state.stats.vocPraise += 1;
+            state.campaign.vocPraise += 1;
+            state.anim.expression = 'relieved';
+            slipMsg = '적정 처리 + VOC 칭찬! 어르신께 친절한 보완 안내를 완료했습니다.';
+          } else if (action === 'REJECT') {
+            state.stats.vocComplaint += 1;
+            state.campaign.vocComplaint += 1;
+            state.anim.expression = 'sad';
+            slipMsg = shielded
+              ? '휴식 버프 발동(오처리 방어)! 단, 어르신 응대 VOC 불만이 기록되었습니다.'
+              : '오처리 + VOC 불만: 어르신의 경미한 누락은 [보완 요청]으로 안내해야 합니다.';
+          } else {
+            state.anim.expression = 'neutral';
+            slipMsg = shielded ? '휴식 버프 발동: 첫 오처리 1회가 방어되었습니다!' : `오처리: ${errDef.mistakeReason}`;
+          }
+        } else if (c.specialKey === 'manager_friend') {
+          if (action === 'REJECT') {
+            state.anim.expression = 'angry';
+            slipMsg = '적정 처리! 부당한 청탁을 원칙대로 반려했습니다.';
+          } else {
+            state.anim.expression = 'relieved';
+            slipMsg = '중대 오처리! 지사장 지인 청탁 승인으로 감사 지적이 즉시 추가되었습니다.';
+          }
+        } else if (c.specialKey === 'suspicious_trap') {
+          if (action === 'APPROVE') {
+            state.anim.expression = 'relieved';
+            slipMsg = '적정 처리! 태도가 급했을 뿐 서류는 완벽한 정상이었습니다.';
+          } else {
+            state.anim.expression = 'angry';
+            state.stats.vocComplaint += 1;
+            state.campaign.vocComplaint += 1;
+            slipMsg = shielded ? '휴식 버프 발동: 첫 오처리 1회가 방어되었습니다!' : `오처리: ${errDef.mistakeReason}`;
+          }
+        } else {
+          state.anim.expression = isCorrect ? 'happy' : 'sad';
+          slipMsg = isCorrect ? '적정 처리 완료!' : (shielded ? '휴식 버프 발동: 첫 오처리 1회가 방어되었습니다!' : `오처리: ${errDef.mistakeReason}`);
+        }
+      } else {
+        if (isCorrect) {
+          state.anim.expression = action === 'APPROVE' ? 'happy' : 'neutral';
+          reactionText = action === 'APPROVE'
+            ? GAME_DATA.dialogueTemplates.outcomes.normalApprove
+            : action === 'REJECT'
+            ? GAME_DATA.dialogueTemplates.outcomes.normalReject
+            : GAME_DATA.dialogueTemplates.outcomes.normalSupplement;
+          slipMsg = `적정 처리 (${actionLabel(action)})`;
+        } else {
+          state.anim.expression = 'angry';
+          reactionText = c.errorCode === 'NONE' && action === 'REJECT'
+            ? GAME_DATA.dialogueTemplates.outcomes.wrongReject
+            : GAME_DATA.dialogueTemplates.outcomes.normalReject;
+          if (c.errorCode === 'NONE' && action === 'REJECT') {
+            state.stats.vocComplaint += 1;
+            state.campaign.vocComplaint += 1;
+          }
+          slipMsg = shielded
+            ? '휴식 버프 발동: 첫 오처리 1회가 방어되었습니다!'
+            : `오처리: ${errDef.mistakeReason}`;
+        }
+      }
+
+      if (!isCorrect && !shielded) SoundFX.playAlert();
+      setSpeech(c.citizenName, reactionText);
+      showFeedbackSlip(slipMsg, slipKind);
+
+      if (state.queueRemaining > 0) state.queueRemaining -= 1;
+      updateHudSummary();
+
+      if (state.campaign.auditStrikes >= GAME_DATA.config.maxAuditStrikes) {
+        setTimeout(() => finishDay(true), 1200);
+        return;
+      }
+
+      setTimeout(() => {
+        if (state.phase !== 'PLAYING') return;
+        state.anim.targetX = 285;
+        state.anim.walking = true;
+        setTimeout(() => {
+          if (state.phase !== 'PLAYING') return;
+          state.caseIndex += 1;
+          callNextCitizen();
+        }, 500);
+      }, 800);
+    }
+
+    function actionLabel(action) {
+      if (action === 'APPROVE') return '승인';
+      if (action === 'REJECT') return '반려';
+      return '보완 요청';
+    }
+
+    function showFeedbackSlip(msg, kind) {
+      clearTimeout(feedbackTimeout);
+      el.feedbackSlip.textContent = msg;
+      el.feedbackSlip.className = `feedback-slip show ${kind}`;
+      feedbackTimeout = setTimeout(() => {
+        el.feedbackSlip.classList.remove('show');
+      }, 2800);
+    }
+
+    function setActionButtonsEnabled(enabled) {
+      el.btnInspect.disabled = !enabled;
+      el.btnApprove.disabled = !enabled;
+      el.btnReject.disabled = !enabled;
+      el.btnSupplement.disabled = !enabled;
+    }
+
+    function setSpeech(speaker, text) {
+      el.speechSpeaker.textContent = speaker;
+      state.speechFull = formatWithPlayer(text);
+      state.speechShownLen = 0;
+      el.speechText.textContent = '';
+
+      if (state.typingTimer) clearInterval(state.typingTimer);
+      state.typingTimer = setInterval(() => {
+        if (state.speechShownLen >= state.speechFull.length) {
+          clearInterval(state.typingTimer);
+          state.typingTimer = null;
+          return;
+        }
+        state.speechShownLen += 2;
+        el.speechText.textContent = state.speechFull.slice(0, state.speechShownLen);
+        if (state.speechShownLen % 4 === 0) SoundFX.playTypeBlip();
+      }, 22);
+    }
+
+    function updateHudSummary() {
+      el.hudQueueCount.textContent = `${String(state.queueRemaining).padStart(2, '0')}명`;
+      el.hudProcessedSummary.textContent =
+        `금일 ${state.stats.processed}건 · 누적 오처리 ${state.campaign.totalMistakes}건 · 감사지적 ${state.campaign.auditStrikes}/${GAME_DATA.config.maxAuditStrikes}`;
+    }
+
+    function updatePatienceUI() {
+      el.patienceFill.style.width = `${Math.max(0, state.patience)}%`;
+      if (state.patience > 55) el.patienceFill.style.background = '#34d399';
+      else if (state.patience > 25) el.patienceFill.style.background = '#f59e0b';
+      else el.patienceFill.style.background = '#ef4444';
+    }
+
+    /* =========================================================================
+       [하루 마감 정산 & 5일차 최종 엔딩]
+       ========================================================================= */
+    function resolveFinalEnding() {
+      const c = state.campaign;
+      const totalAcc = c.totalProcessed > 0 ? Math.round((c.totalCorrect / c.totalProcessed) * 100) : 100;
+      if (c.auditStrikes >= GAME_DATA.config.maxAuditStrikes) return GAME_DATA.endings.badAudit;
+      if (totalAcc >= 88 && c.vocPraise >= 2 && c.auditStrikes <= 1) return GAME_DATA.endings.excellent;
+      if (c.vocPraise > c.vocComplaint && totalAcc < 78) return GAME_DATA.endings.kindHeart;
+      if (totalAcc >= 85 && c.vocComplaint >= c.vocPraise) return GAME_DATA.endings.strictRule;
+      return GAME_DATA.endings.normalYear1;
+    }
+
+    function finishDay(forcedAuditFailure = false) {
+      state.phase = 'SETTLEMENT';
+      setInspectMode(false);
+      const st = state.stats;
+      const camp = state.campaign;
+      const isFinalDay = state.day >= GAME_DATA.config.totalDays || forcedAuditFailure;
+
+      const dayAcc = st.processed > 0 ? Math.round((st.correct / st.processed) * 100) : 100;
+      const totalAcc = camp.totalProcessed > 0 ? Math.round((camp.totalCorrect / camp.totalProcessed) * 100) : 100;
+
+      if (forcedAuditFailure) {
+        el.settlementTitle.textContent = `${state.day}일차 긴급 마감 — ${state.playerName} 주임 (감사 지적 3회)`;
+        el.settlementSubtitle.textContent = '징계 면담';
+      } else if (state.day === GAME_DATA.config.totalDays) {
+        el.settlementTitle.textContent = `5일차 종합감사 종료 · ${state.playerName} 주임 최종 성적표`;
+        el.settlementSubtitle.textContent = '5일 근무 완료';
+      } else {
+        el.settlementTitle.textContent = `${state.day}일차 퇴근 정산 — ${state.playerName} 주임`;
+        el.settlementSubtitle.textContent = '18:00 마감';
+      }
+
+      if (isFinalDay) {
+        const ending = resolveFinalEnding();
+        el.endingBannerWrap.style.display = 'block';
+        el.endingBannerWrap.innerHTML = `
+          <div class="ending-banner ${ending.isBad ? 'bad' : ''}">
+            <div class="ending-title">${formatWithPlayer(ending.title)}</div>
+            <div class="ending-desc">${formatWithPlayer(ending.desc)}</div>
+          </div>
+        `;
+      } else {
+        el.endingBannerWrap.style.display = 'none';
+      }
+
+      el.settlementStats.innerHTML = `
+        <div class="stat-cell">
+          <div class="stat-label">${isFinalDay ? '전체 누적 처리 건수' : '금일 처리 건수'}</div>
+          <div class="stat-val tabular-nums">${isFinalDay ? camp.totalProcessed : st.processed}건</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">${isFinalDay ? '전체 심사 정확도' : '금일 심사 정확도'}</div>
+          <div class="stat-val tabular-nums">${isFinalDay ? `${totalAcc}% (${camp.totalCorrect}/${camp.totalProcessed})` : `${dayAcc}% (${st.correct}/${st.processed})`}</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">누적 오처리 / 감사 지적</div>
+          <div class="stat-val tabular-nums" style="color:${camp.auditStrikes > 0 ? '#fca5a5' : '#6ee7b7'};">
+            ${camp.totalMistakes}건 / ${camp.auditStrikes}회
+          </div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">${isFinalDay ? '전체 VOC (칭찬/불만)' : '금일 VOC (칭찬/불만)'}</div>
+          <div class="stat-val tabular-nums">
+            칭찬 ${isFinalDay ? camp.vocPraise : st.vocPraise} · 불만 ${isFinalDay ? camp.vocComplaint : st.vocComplaint}
+          </div>
+        </div>
+      `;
+
+      if (st.mistakeLog.length === 0) {
+        el.settlementMistakes.innerHTML = `
+          <div style="background:#122b22;border:2px solid #1e7e45;padding:8px 10px;font-size:12.5px;color:#a7f3d0;">
+            완벽합니다! ${state.day}일차 오처리 및 감사 지적 사항이 0건입니다.
+          </div>
+        `;
+      } else {
+        el.settlementMistakes.innerHTML = st.mistakeLog.map(m => `
+          <div class="mistake-item">
+            <strong>${m.ticketLabel} (${m.citizenName}) — 선택: [${m.chosen}]</strong>
+            <div>${m.reason}</div>
+          </div>
+        `).join('');
+      }
+
+      if (isFinalDay) {
+        el.afterWorkSection.style.display = 'none';
+        el.btnNextDay.style.display = 'none';
+        el.btnRestartCampaign.style.display = 'flex';
+      } else {
+        el.afterWorkSection.style.display = 'block';
+        el.btnNextDay.style.display = 'flex';
+        el.btnNextDay.disabled = true;
+        el.btnNextDay.textContent = `${state.day + 1}일차 출근하기 (퇴근 후 활동 선택 필요)`;
+        el.btnRestartCampaign.style.display = 'none';
+
+        el.afterWorkGrid.innerHTML = GAME_DATA.afterWorkChoices.map(ch => `
+          <button class="afterwork-btn" data-choice="${ch.id}" type="button">
+            <strong>${ch.title}</strong>
+            <span>${ch.desc}</span>
+          </button>
+        `).join('');
+
+        el.afterWorkGrid.querySelectorAll('.afterwork-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            el.afterWorkGrid.querySelectorAll('.afterwork-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            const chosen = GAME_DATA.afterWorkChoices.find(x => x.id === btn.dataset.choice);
+            st.afterWorkChoice = chosen;
+            state.campaign.activeBuff = chosen;
+            el.btnNextDay.disabled = false;
+            el.btnNextDay.textContent = `${state.day + 1}일차 출근하기`;
+            SoundFX.playSuccessChime();
+          });
+        });
+      }
+
+      el.modalSettlement.classList.add('open');
+    }
+
+    /* =========================================================================
+       [메인 게임 루프]
+       ========================================================================= */
+    function gameLoop(now) {
+      const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      if (state.phase === 'PLAYING') {
+        const maxSec = GAME_DATA.config.dayDurationByDay[state.day] || 120;
+        state.elapsedRealSec += dt;
+        const ratio = Math.min(1, state.elapsedRealSec / maxSec);
+        const totalGameMinutes = Math.floor(ratio * (GAME_DATA.config.endHour - GAME_DATA.config.startHour) * 60);
+        const hour = GAME_DATA.config.startHour + Math.floor(totalGameMinutes / 60);
+        const minute = totalGameMinutes % 60;
+        el.hudClockTime.textContent = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+        if (ratio >= 1 && !state.isTransitioning) {
+          finishDay(false);
+        }
+
+        state.queueBumpTimer += dt;
+        const bumpInterval = (hour >= 10 && hour <= 11) || (hour >= 14 && hour <= 15) ? 10 : 15;
+        if (state.queueBumpTimer >= bumpInterval) {
+          state.queueBumpTimer = 0;
+          state.queueRemaining = Math.min(18, state.queueRemaining + 1);
+          el.hudQueueCount.textContent = `${String(state.queueRemaining).padStart(2, '0')}명`;
+        }
+
+        if (state.currentCase && !state.isTransitioning) {
+          const dinnerFactor = state.campaign.activeBuff?.id === 'dinner' ? 0.7 : 1.0;
+          const speed = state.currentCase.patienceSpeed * 1.9 * dinnerFactor;
+          state.patience = Math.max(0, state.patience - speed * dt);
+          updatePatienceUI();
+
+          if (state.patience <= 35 && !state.impatientWarned) {
+            state.impatientWarned = true;
+            if (state.currentCase.specialDef?.impatientLine) {
+              state.anim.expression = 'angry';
+              setSpeech(state.currentCase.citizenName, state.currentCase.specialDef.impatientLine);
+              SoundFX.playAlert();
+            } else if (state.patience <= 20) {
+              setSpeech(state.currentCase.citizenName, '저기... 아직 확인 중이신가요? 뒤에 기다리는 분들도 많네요...');
+            }
+          }
+
+          if (state.patience <= 0 && !state.impatientWarned2) {
+            state.impatientWarned2 = true;
+            state.stats.vocComplaint += 1;
+            state.campaign.vocComplaint += 1;
+            showFeedbackSlip('대기 시간 초과: 민원인이 불만(VOC)을 표출했습니다!', 'bad');
+            SoundFX.playAlert();
+          }
+        }
+      }
+
+      if (state.anim.walking) {
+        const dx = state.anim.targetX - state.anim.x;
+        if (Math.abs(dx) < 3) {
+          state.anim.x = state.anim.targetX;
+          state.anim.walking = false;
+        } else {
+          state.anim.x += Math.sign(dx) * 180 * dt;
+          state.anim.step += dt * 28;
+        }
+      }
+
+      PixelArt.renderBoothScene(el.boothCanvas, state.currentCase, state.anim);
+      requestAnimationFrame(gameLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>

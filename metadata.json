@@ -1,0 +1,6 @@
+{
+  "name": "민원 플리즈: 건보 창구 7일",
+  "description": "국민건강보험공단 지사 민원실을 배경으로 한 8비트 도트풍 서류 심사 게임 (1일차)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
